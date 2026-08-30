@@ -3,73 +3,170 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Team Hub Chat</title>
+  <title>Splormb HQ | Team Workspace</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    * { box-sizing: border-box; font-family: Arial, sans-serif; margin: 0; padding: 0; }
-    body { background: #1e1e2e; color: #fff; display: flex; height: 100vh; justify-content: center; align-items: center; }
-    
-    #login-screen { background: #2b2b3b; padding: 30px; border-radius: 8px; width: 320px; text-align: center; }
-    #login-screen h2 { margin-bottom: 20px; }
-    input, select, button { width: 100%; padding: 10px; margin-bottom: 12px; border-radius: 5px; border: none; }
-    button { background: #7289da; color: white; font-weight: bold; cursor: pointer; }
-    button:hover { background: #5b6eae; }
+    :root {
+      --bg-dark: #0f111a;
+      --bg-panel: #181b29;
+      --bg-card: #212538;
+      --accent: #6c5ce7;
+      --text-main: #f1f2f6;
+      --text-muted: #a4b0be;
+      --border: #2f354a;
+    }
 
-    #app-screen { display: none; width: 100%; height: 100vh; }
-    .sidebar { width: 250px; background: #2b2b3b; padding: 20px; display: flex; flex-direction: column; }
-    .sidebar h3 { margin-bottom: 15px; color: #7289da; }
-    .room-btn { background: transparent; text-align: left; color: #ccc; margin-bottom: 5px; }
-    .room-btn.active { background: #40445b; color: white; }
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; }
+    body { background: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
+
+    /* Login Screen */
+    #auth-screen {
+      position: fixed; inset: 0; background: rgba(15, 17, 26, 0.95); backdrop-filter: blur(10px);
+      display: flex; justify-content: center; align-items: center; z-index: 100;
+    }
+    .auth-card {
+      background: var(--bg-panel); border: 1px solid var(--border); padding: 35px;
+      border-radius: 16px; width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .auth-card h2 { margin-bottom: 6px; font-size: 1.8rem; background: linear-gradient(135deg, #a8c0ff, #3f2b96); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .auth-card p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
     
-    .chat-area { flex: 1; display: flex; flex-direction: column; background: #1e1e2e; }
-    .chat-header { padding: 15px; background: #252535; border-bottom: 1px solid #333; }
-    .messages { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    .message { background: #2b2b3b; padding: 10px; border-radius: 6px; max-width: 70%; }
-    .message .author { font-size: 0.8rem; color: #7289da; font-weight: bold; margin-bottom: 4px; }
+    input, select {
+      width: 100%; padding: 12px 14px; margin-bottom: 12px; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 8px; color: #fff; outline: none; transition: 0.2s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
     
-    .input-area { padding: 15px; background: #252535; display: flex; gap: 10px; }
-    .input-area input { margin: 0; flex: 1; background: #1e1e2e; color: white; border: 1px solid #444; }
-    .input-area button { width: auto; padding: 0 20px; }
+    .btn-primary {
+      width: 100%; padding: 12px; background: linear-gradient(135deg, var(--accent), #4834d4);
+      color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 5px;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+
+    .toggle-auth { color: var(--accent); font-size: 0.85rem; margin-top: 15px; cursor: pointer; display: inline-block; }
+    .toggle-auth:hover { text-decoration: underline; }
+
+    /* Main App Layout */
+    #app-screen { display: none; width: 100vw; height: 100vh; }
+    
+    /* Sidebar */
+    .sidebar { width: 280px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+    .brand { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 1.2rem; }
+    .brand-title { display: flex; align-items: center; gap: 10px; }
+    .brand i { color: var(--accent); font-size: 1.4rem; }
+    .logout-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; width: auto; padding: 4px 8px; }
+    .logout-btn:hover { color: #ff4757; }
+    
+    .section-title { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; padding: 20px 20px 10px; font-weight: 700; }
+    .nav-list { list-style: none; padding: 0 10px; }
+    .nav-btn {
+      width: 100%; padding: 10px 14px; background: transparent; border: none; border-radius: 6px;
+      color: var(--text-muted); display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 0.95rem; transition: 0.2s; margin-bottom: 2px;
+    }
+    .nav-btn:hover { background: var(--bg-card); color: #fff; }
+    .nav-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
+
+    /* Main Content Area */
+    .main-content { flex: 1; display: flex; flex-direction: column; }
+    .chat-header {
+      padding: 16px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .chat-header h4 { font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+
+    /* Messages Stream */
+    .messages { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+    .message {
+      background: var(--bg-panel); border: 1px solid var(--border); padding: 14px 16px;
+      border-radius: 12px; max-width: 75%; width: fit-content; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .msg-author { font-weight: 700; font-size: 0.9rem; color: #fff; }
+    .role-badge {
+      font-size: 0.65rem; padding: 2px 8px; border-radius: 12px; font-weight: 700; text-transform: uppercase;
+    }
+    .role-3d-animator { background: rgba(255, 71, 87, 0.2); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.3); }
+    .role-voice-actor { background: rgba(46, 213, 115, 0.2); color: #2ed573; border: 1px solid rgba(46, 213, 115, 0.3); }
+    .role-scriptwriter { background: rgba(255, 165, 2, 0.2); color: #ffa502; border: 1px solid rgba(255, 165, 2, 0.3); }
+    .role-editor { background: rgba(30, 144, 255, 0.2); color: #1e90ff; border: 1px solid rgba(30, 144, 255, 0.3); }
+
+    .msg-text { color: var(--text-main); line-height: 1.4; font-size: 0.95rem; word-break: break-word; }
+    .msg-link { color: #70a1ff; text-decoration: underline; }
+
+    /* Input Dock */
+    .input-dock { padding: 16px 24px; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; gap: 12px; }
+    .input-dock input { margin: 0; background: var(--bg-card); }
+    .input-dock button { width: auto; padding: 0 24px; display: flex; align-items: center; gap: 8px; }
   </style>
 </head>
 <body>
 
-  <!-- LOGIN SCREEN -->
-  <div id="login-screen">
-    <h2>Join Team Hub</h2>
-    <input type="text" id="username-input" placeholder="Your Name" onkeydown="if(event.key === 'Enter') joinTeam()" required>
-    <select id="role-select">
-      <option value="3D Animator">3D Animator</option>
-      <option value="Voice Actor">Voice Actor</option>
-      <option value="Scriptwriter">Scriptwriter</option>
-      <option value="Editor">Editor</option>
-    </select>
-    <button onclick="joinTeam()">Enter Workspace</button>
+  <!-- AUTH MODAL -->
+  <div id="auth-screen">
+    <div class="auth-card">
+      <h2 id="auth-title">Splormb HQ</h2>
+      <p id="auth-subtitle">Sign in to access your workspace.</p>
+      
+      <input type="email" id="email-input" placeholder="Email Address">
+      <input type="password" id="password-input" placeholder="Password">
+      
+      <div id="signup-fields" style="display: none;">
+        <input type="text" id="username-input" placeholder="Display Name">
+        <select id="role-select">
+          <option value="3D Animator">3D Animator</option>
+          <option value="Voice Actor">Voice Actor</option>
+          <option value="Scriptwriter">Scriptwriter</option>
+          <option value="Editor">Editor</option>
+        </select>
+      </div>
+
+      <button class="btn-primary" id="auth-btn" onclick="handleAuth()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+      <div class="toggle-auth" id="toggle-link" onclick="toggleAuthMode()">Need an account? Register</div>
+    </div>
   </div>
 
-  <!-- CHAT APP SCREEN -->
+  <!-- MAIN APP -->
   <div id="app-screen">
     <div class="sidebar">
-      <h3>Chat Rooms</h3>
-      <button class="room-btn active" onclick="switchRoom('general')"># general</button>
-      <button class="room-btn" onclick="switchRoom('animation')"># 3d-animation</button>
-      <button class="room-btn" onclick="switchRoom('voice-acting')"># voice-acting</button>
-      <button class="room-btn" onclick="switchRoom('scripts')"># scripts</button>
-    </div>
-    
-    <div class="chat-area">
-      <div class="chat-header">
-        <h4 id="current-room-title"># general</h4>
+      <div class="brand">
+        <div class="brand-title"><i class="fa-solid fa-clapperboard"></i> Splormb HQ</div>
+        <button class="logout-btn" onclick="logout()" title="Sign Out"><i class="fa-solid fa-right-from-bracket"></i></button>
       </div>
+      
+      <div class="section-title">Channels</div>
+      <div class="nav-list">
+        <button class="nav-btn active" onclick="switchRoom('general')"><i class="fa-solid fa-hashtag"></i> general</button>
+        <button class="nav-btn" onclick="switchRoom('animation')"><i class="fa-solid fa-cube"></i> 3d-animation</button>
+        <button class="nav-btn" onclick="switchRoom('voice-acting')"><i class="fa-solid fa-microphone"></i> voice-acting</button>
+        <button class="nav-btn" onclick="switchRoom('scripts')"><i class="fa-solid fa-scroll"></i> scripts</button>
+      </div>
+
+      <div class="section-title">Production</div>
+      <div class="nav-list">
+        <button class="nav-btn" onclick="switchRoom('assets')"><i class="fa-solid fa-folder-open"></i> asset-links</button>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="chat-header">
+        <h4 id="current-room-title"><i class="fa-solid fa-hashtag"></i> general</h4>
+      </div>
+      
       <div class="messages" id="message-container"></div>
-      <div class="input-area">
-        <input type="text" id="message-input" placeholder="Type a message..." onkeydown="if(event.key === 'Enter') sendMessage()">
-        <button onclick="sendMessage()">Send</button>
+      
+      <div class="input-dock">
+        <input type="text" id="message-input" placeholder="Share updates, drop drive links, or chat..." onkeydown="if(event.key === 'Enter') sendMessage()">
+        <button class="btn-primary" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i> Send</button>
       </div>
     </div>
   </div>
 
   <!-- Firebase Compat Libraries -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="app.js"></script>
 </body>
