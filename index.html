@@ -26,7 +26,7 @@
 
     #auth-screen {
       position: fixed; inset: 0; background: rgba(10, 11, 16, 0.95); backdrop-filter: blur(12px);
-      display: flex; justify-content: center; align-items: center; z-index: 100;
+      display: flex; justify-content: center; align-items: center; z-index: 1000;
     }
     .auth-card {
       background: var(--bg-panel); border: 1px solid var(--accent); padding: 40px;
@@ -39,11 +39,11 @@
     }
     .auth-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; }
     
-    input, select {
+    input {
       width: 100%; padding: 12px 16px; margin-bottom: 14px; background: var(--bg-card);
       border: 1px solid var(--border); border-radius: 10px; color: #fff; outline: none; transition: 0.3s;
     }
-    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
+    input:focus { border-color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
     
     .btn-primary {
       width: 100%; padding: 12px; background: linear-gradient(135deg, var(--accent-pink), var(--accent));
@@ -79,8 +79,8 @@
 
     .messages { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
     .message {
-      background: var(--bg-panel); border: 1px solid var(--border); padding: 14px 18px;
-      border-radius: 14px; max-width: 70%; width: fit-content; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      position: relative; background: var(--bg-panel); border: 1px solid var(--border); padding: 14px 18px;
+      border-radius: 14px; max-width: 75%; width: fit-content; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       animation: fadeIn 0.2s ease-in-out;
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
@@ -94,17 +94,29 @@
       box-shadow: 0 0 10px var(--accent-glow);
     }
 
+    .msg-actions {
+      display: none; position: absolute; top: -12px; right: 12px; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 8px; padding: 2px 6px; gap: 8px; z-index: 10;
+    }
+    .message:hover .msg-actions { display: flex; }
+    .action-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; padding: 4px; }
+    .action-btn:hover { color: var(--accent-pink); }
+
     .msg-text { color: var(--text-main); line-height: 1.5; font-size: 0.95rem; word-break: break-word; }
+    .msg-edited { font-size: 0.7rem; color: var(--text-muted); margin-left: 6px; }
     .msg-link { color: var(--accent-pink); text-decoration: underline; }
+    .msg-image { max-width: 100%; max-height: 300px; border-radius: 10px; margin-top: 8px; display: block; border: 1px solid var(--border); }
+    .msg-file-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--bg-card); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; color: var(--accent-pink); text-decoration: none; margin-top: 8px; font-size: 0.85rem; font-weight: 600; }
 
-    .input-dock { padding: 20px 24px; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; gap: 12px; }
-    .input-dock input { margin: 0; background: var(--bg-card); border-radius: 12px; }
-    .input-dock button { width: auto; padding: 0 28px; border-radius: 12px; display: flex; align-items: center; gap: 8px; }
+    .input-dock { padding: 20px 24px; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; gap: 12px; align-items: center; }
+    .input-dock input[type="text"] { margin: 0; background: var(--bg-card); border-radius: 12px; flex: 1; }
+    .input-dock button { width: auto; padding: 0 24px; height: 45px; border-radius: 12px; display: flex; align-items: center; gap: 8px; }
+    .upload-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; }
+    .upload-btn:hover { color: var(--accent-pink); border-color: var(--accent-pink); }
 
-    /* Admin Role Modal */
     .modal {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
-      justify-content: center; align-items: center; z-index: 200;
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+      justify-content: center; align-items: center; z-index: 2000;
     }
     .modal-content {
       background: var(--bg-panel); border: 1px solid var(--accent); padding: 30px; border-radius: 16px; width: 400px;
@@ -141,8 +153,8 @@
       </div>
 
       <div class="section-title">Management</div>
-      <div class="nav-list">
-        <button class="nav-btn" onclick="openRoleModal()"><i class="fa-solid fa-user-gear"></i> Set My Role</button>
+      <div class="nav-list" id="management-section">
+        <button class="nav-btn" id="role-btn" onclick="openRoleModal()"><i class="fa-solid fa-user-gear"></i> Set My Role</button>
       </div>
     </div>
 
@@ -154,17 +166,20 @@
       <div class="messages" id="message-container"></div>
       
       <div class="input-dock">
+        <label class="upload-btn" title="Upload File or Image">
+          <i class="fa-solid fa-paperclip"></i>
+          <input type="file" id="file-input" style="display: none;" onchange="handleFileUpload(event)">
+        </label>
         <input type="text" id="message-input" placeholder="Drop a message..." onkeydown="if(event.key === 'Enter') sendMessage()">
         <button class="btn-primary" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i> Send</button>
       </div>
     </div>
   </div>
 
-  <!-- Role Edit Modal -->
   <div id="role-modal" class="modal">
     <div class="modal-content">
-      <h3 style="margin-bottom: 12px; font-weight: 800; color: #fff;">Update Your Display Role</h3>
-      <input type="text" id="custom-role-input" placeholder="e.g. Lead 3D Animator, Boss, Editor">
+      <h3 style="margin-bottom: 12px; font-weight: 800; color: #fff;">Update Display Role</h3>
+      <input type="text" id="custom-role-input" placeholder="e.g. BOSS, Lead 3D Animator">
       <button class="btn-primary" onclick="saveUserRole()">Save Role</button>
       <button class="btn-primary" onclick="closeRoleModal()" style="background: transparent; border: 1px solid var(--border); margin-top: 8px;">Cancel</button>
     </div>
@@ -173,6 +188,7 @@
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
