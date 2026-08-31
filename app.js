@@ -307,14 +307,14 @@ async function deleteMessage(msgId) {
   }
 }
 
-// 200MB Any-File Uploader via Catbox API
+// Direct Uploader for any file type up to 500MB via tmpfiles.org (bypasses CORS blocks)
 async function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const maxSizeBytes = 200 * 1024 * 1024; // 200 MB limit
+  const maxSizeBytes = 500 * 1024 * 1024; // 500 MB limit
   if (file.size > maxSizeBytes) { 
-    alert("File is too large! Maximum size limit is 200 MB.");
+    alert("File is too large! Maximum limit is 500 MB.");
     return;
   }
 
@@ -322,10 +322,9 @@ async function handleFileUpload(event) {
 
   try {
     const formData = new FormData();
-    formData.append("reqtype", "fileupload");
-    formData.append("fileToUpload", file);
+    formData.append("file", file);
 
-    const response = await fetch("https://corsproxy.io/?" + encodeURIComponent("https://catbox.moe/user/api.php"), {
+    const response = await fetch("https://tmpfiles.org/api/v1/upload", {
       method: "POST",
       body: formData
     });
@@ -334,11 +333,13 @@ async function handleFileUpload(event) {
       throw new Error("Server responded with status " + response.status);
     }
 
-    const fileUrl = await response.text();
+    const data = await response.json();
 
-    if (fileUrl && fileUrl.startsWith("http")) {
+    if (data.status === "success" && data.data && data.data.url) {
+      const directUrl = data.data.url.replace("tmpfiles.org/", "tmpfiles.org/dl/");
+
       sendMessage({
-        url: fileUrl.trim(),
+        url: directUrl,
         name: file.name,
         type: file.type || 'application/octet-stream'
       });
