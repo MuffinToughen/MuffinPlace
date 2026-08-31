@@ -42,13 +42,12 @@ auth.onAuthStateChanged(async (user) => {
         await db.collection('users').doc(user.uid).set(currentUserData);
       }
 
-      if (username === 'muffintoughen') {
-        if (roleBtn) roleBtn.style.display = 'flex';
-      } else {
-        if (roleBtn) roleBtn.style.display = 'none';
+      if (roleBtn) {
+        roleBtn.style.display = (username === 'muffintoughen') ? 'flex' : 'none';
       }
 
     } catch (e) {
+      console.error(e);
       currentUserData = { name: user.email.split('@')[0], roles: ['Member'] };
     }
     
@@ -63,8 +62,13 @@ auth.onAuthStateChanged(async (user) => {
 });
 
 async function handleAuth() {
-  const email = document.getElementById('email-input').value.trim();
-  const password = document.getElementById('password-input').value;
+  const emailInput = document.getElementById('email-input');
+  const passwordInput = document.getElementById('password-input');
+  
+  if (!emailInput || !passwordInput) return;
+
+  const email = emailInput.value.trim();
+  const password = passwordInput.value;
 
   if (!email || !password) {
     alert("Please enter credentials.");
@@ -88,6 +92,8 @@ async function openRoleModal() {
   if (currentUserData && currentUserData.name === 'muffintoughen') {
     showLoading(true);
     const dropdown = document.getElementById('user-select-dropdown');
+    if (!dropdown) return;
+    
     dropdown.innerHTML = '';
     
     const usersSnap = await db.collection('users').get();
@@ -95,23 +101,28 @@ async function openRoleModal() {
       const data = doc.data();
       const opt = document.createElement('option');
       opt.value = doc.id;
-      opt.innerText = `${data.name} (${(data.roles || []).join(', ')})`;
+      opt.innerText = `${data.name || 'User'} (${(data.roles || []).join(', ')})`;
       dropdown.appendChild(opt);
     });
 
     showLoading(false);
-    document.getElementById('role-modal').style.display = 'flex';
+    const modal = document.getElementById('role-modal');
+    if (modal) modal.style.display = 'flex';
   }
 }
 
 function closeRoleModal() {
-  document.getElementById('role-modal').style.display = 'none';
+  const modal = document.getElementById('role-modal');
+  if (modal) modal.style.display = 'none';
 }
 
 async function saveTargetUserRoles() {
   const dropdown = document.getElementById('user-select-dropdown');
+  const input = document.getElementById('custom-role-input');
+  if (!dropdown || !input) return;
+
   const targetUid = dropdown.value;
-  const rawRoles = document.getElementById('custom-role-input').value.trim();
+  const rawRoles = input.value.trim();
   
   if (!targetUid || !rawRoles) return;
   
@@ -131,32 +142,39 @@ async function openUserProfile(name) {
   
   if (!usersSnap.empty) {
     const userData = usersSnap.docs[0].data();
-    document.getElementById('profile-name').innerText = userData.name || name;
-    document.getElementById('profile-email').innerText = userData.email || 'No email registered';
-    
+    const nameEl = document.getElementById('profile-name');
+    const emailEl = document.getElementById('profile-email');
     const container = document.getElementById('profile-roles-container');
-    container.innerHTML = '';
     
-    const roles = userData.roles || (userData.role ? [userData.role] : ['Member']);
-    roles.forEach(r => {
-      const badge = document.createElement('span');
-      badge.className = 'role-badge';
-      badge.innerText = r;
-      container.appendChild(badge);
-    });
+    if (nameEl) nameEl.innerText = userData.name || name;
+    if (emailEl) emailEl.innerText = userData.email || 'No email registered';
+    
+    if (container) {
+      container.innerHTML = '';
+      const roles = userData.roles || (userData.role ? [userData.role] : ['Member']);
+      roles.forEach(r => {
+        const badge = document.createElement('span');
+        badge.className = 'role-badge';
+        badge.innerText = r;
+        container.appendChild(badge);
+      });
+    }
 
-    document.getElementById('profile-modal').style.display = 'flex';
+    const modal = document.getElementById('profile-modal');
+    if (modal) modal.style.display = 'flex';
   }
   showLoading(false);
 }
 
 function closeProfileModal() {
-  document.getElementById('profile-modal').style.display = 'none';
+  const modal = document.getElementById('profile-modal');
+  if (modal) modal.style.display = 'none';
 }
 
 function switchRoom(roomName) {
   currentRoom = roomName;
-  document.getElementById('current-room-title').innerHTML = `<i class="fa-solid fa-hashtag"></i> ${roomName}`;
+  const title = document.getElementById('current-room-title');
+  if (title) title.innerHTML = `<i class="fa-solid fa-hashtag"></i> ${roomName}`;
   
   document.querySelectorAll('.nav-btn').forEach(btn => {
     btn.classList.remove('active');
@@ -234,6 +252,7 @@ function loadRoomMessages(room) {
 
 function sendMessage(fileData = null) {
   const input = document.getElementById('message-input');
+  if (!input) return;
   const text = input.value.trim();
 
   if (!text && !fileData) return;
