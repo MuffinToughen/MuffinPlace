@@ -558,6 +558,75 @@ select:focus-visible {
   cursor: pointer;
 }
 
+.send-btn:disabled,
+.attach-btn.is-disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.channel-create {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+
+.channel-create label,
+.channel-manager-row small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.channel-manager-list {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.channel-manager-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(150px, 1.3fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  background: var(--panel-3);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.channel-manager-row > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.channel-manager-row input {
+  min-width: 0;
+  padding: 8px 10px;
+  color: var(--text);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.channel-row-button { min-height: 36px; padding: 7px 10px; }
+.danger-action { color: #fecaca; border-color: rgba(239,68,68,.4); }
+
+.announcement-author {
+  padding: 0;
+  color: #d8b4fe;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.announcement-author:hover,
+.msg-author:hover { text-decoration: underline; }
+
 /* Modals */
 .modal {
   position: fixed;
@@ -647,7 +716,6 @@ select:focus-visible {
   margin-bottom: 5px;
 }
 
-.announcement-author { color: #d8b4fe; font-size: 12px; font-weight: 700; }
 .announcement-time { color: var(--muted); font-size: 11px; }
 .announcement-text { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 14px; }
 
@@ -740,4 +808,6 @@ select:focus-visible {
   .input-area { padding: 10px; }
   .chat-header { padding: 0 10px; }
   .msg-actions { opacity: 1; pointer-events: auto; transform: none; }
+  .channel-manager-row { grid-template-columns: 1fr auto; }
+  .channel-manager-row input { grid-column: 1 / -1; }
 }
