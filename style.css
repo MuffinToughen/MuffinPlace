@@ -365,7 +365,7 @@ select:focus-visible {
 .message-container {
   flex: 1;
   overflow-y: auto;
-  padding: 22px max(18px, 4vw);
+  padding: 22px 18px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -374,15 +374,24 @@ select:focus-visible {
 
 .message {
   position: relative;
-  max-width: 900px;
+  max-width: none;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
   padding: 10px 48px 10px 54px;
   border-radius: 10px;
   transition: background .15s ease;
 }
 
 .message:hover { background: rgba(255,255,255,.025); }
+
+.message-enter {
+  animation: message-arrive .24s cubic-bezier(.2,.8,.3,1) both;
+}
+
+@keyframes message-arrive {
+  from { opacity: 0; transform: translateY(8px) scale(.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .message-avatar {
   position: absolute;
@@ -836,4 +845,8 @@ select:focus-visible {
   .msg-actions { opacity: 1; pointer-events: auto; transform: none; }
   .channel-manager-row { grid-template-columns: 1fr auto; }
   .channel-manager-row input { grid-column: 1 / -1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .message-enter { animation: none; }
 }
