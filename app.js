@@ -1143,7 +1143,7 @@ async function uploadSelectedImage(file) {
       "error"
     );
 
-    $("image-upload").value = "";
+    $("file-upload").value = "";
 
     return;
   }
@@ -1156,7 +1156,7 @@ async function uploadSelectedImage(file) {
       "error"
     );
 
-    $("image-upload").value = "";
+    $("file-upload").value = "";
 
     return;
   }
@@ -1253,7 +1253,7 @@ async function uploadSelectedImage(file) {
 
   } finally {
 
-    $("image-upload").value = "";
+    $("file-upload").value = "";
 
   }
 
@@ -2381,14 +2381,28 @@ function loadAuditLogs() {
 
 function openModal(id) {
 
-  $(id).hidden = false;
+  const modal = $(id);
+
+  if (!modal) return;
+
+  modal.hidden = false;
+
+  const closeButton = modal.querySelector(".close-modal");
+
+  if (closeButton) {
+    closeButton.focus();
+  }
 
 }
 
 
 function closeModal(id) {
 
-  $(id).hidden = true;
+  const modal = $(id);
+
+  if (!modal) return;
+
+  modal.hidden = true;
 
 
   if (
@@ -2591,7 +2605,7 @@ $("message-form")
   );
 
 
-$("image-upload")
+$("file-upload")
   .addEventListener(
     "change",
     event => {
