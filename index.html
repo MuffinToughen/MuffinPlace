@@ -3,118 +3,133 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Splormb HQ | Team Workspace</title>
+  <title>Muffins Place</title>
   
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 
   <style>
     :root {
-      --bg-dark: #0f111a;
-      --bg-panel: #181b29;
-      --bg-card: #212538;
-      --accent: #6c5ce7;
+      --bg-dark: #0a0b10;
+      --bg-panel: #12141d;
+      --bg-card: #1a1d2b;
+      --accent: #a55eea;
+      --accent-glow: rgba(165, 94, 234, 0.4);
+      --accent-pink: #ff007f;
       --text-main: #f1f2f6;
-      --text-muted: #a4b0be;
-      --border: #2f354a;
+      --text-muted: #8890a6;
+      --border: #26293b;
     }
 
-    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; }
+    * { box-sizing: border-box; font-family: 'Outfit', system-ui, sans-serif; margin: 0; padding: 0; }
     body { background: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
 
     #auth-screen {
-      position: fixed; inset: 0; background: rgba(15, 17, 26, 0.95); backdrop-filter: blur(10px);
+      position: fixed; inset: 0; background: rgba(10, 11, 16, 0.95); backdrop-filter: blur(12px);
       display: flex; justify-content: center; align-items: center; z-index: 100;
     }
     .auth-card {
-      background: var(--bg-panel); border: 1px solid var(--border); padding: 35px;
-      border-radius: 16px; width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      background: var(--bg-panel); border: 1px solid var(--accent); padding: 40px;
+      border-radius: 20px; width: 380px; text-align: center; box-shadow: 0 0 30px var(--accent-glow);
     }
-    .auth-card h2 { margin-bottom: 6px; font-size: 1.8rem; background: linear-gradient(135deg, #a8c0ff, #3f2b96); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .auth-card p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
+    .auth-card h2 { 
+      margin-bottom: 6px; font-size: 2.2rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-pink), var(--accent)); 
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
+    }
+    .auth-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; }
     
-    input {
-      width: 100%; padding: 12px 14px; margin-bottom: 12px; background: var(--bg-card);
-      border: 1px solid var(--border); border-radius: 8px; color: #fff; outline: none; transition: 0.2s;
+    input, select {
+      width: 100%; padding: 12px 16px; margin-bottom: 14px; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 10px; color: #fff; outline: none; transition: 0.3s;
     }
-    input:focus { border-color: var(--accent); }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
     
     .btn-primary {
-      width: 100%; padding: 12px; background: linear-gradient(135deg, var(--accent), #4834d4);
-      color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 5px;
+      width: 100%; padding: 12px; background: linear-gradient(135deg, var(--accent-pink), var(--accent));
+      color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s;
+      box-shadow: 0 4px 15px var(--accent-glow);
     }
-    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
 
     #app-screen { display: none; width: 100vw; height: 100vh; }
     
     .sidebar { width: 280px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-    .brand { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 1.2rem; }
-    .brand-title { display: flex; align-items: center; gap: 10px; }
-    .brand i { color: var(--accent); font-size: 1.4rem; }
-    .logout-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; width: auto; padding: 4px 8px; }
-    .logout-btn:hover { color: #ff4757; }
+    .brand { padding: 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+    .brand-title { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 1.4rem; background: linear-gradient(135deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .brand i { color: var(--accent-pink); font-size: 1.5rem; }
+    .logout-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; }
+    .logout-btn:hover { color: var(--accent-pink); }
     
-    .section-title { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; padding: 20px 20px 10px; font-weight: 700; }
-    .nav-list { list-style: none; padding: 0 10px; }
+    .section-title { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1.5px; padding: 20px 20px 10px; font-weight: 800; }
+    .nav-list { list-style: none; padding: 0 12px; }
     .nav-btn {
-      width: 100%; padding: 10px 14px; background: transparent; border: none; border-radius: 6px;
-      color: var(--text-muted); display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 0.95rem; transition: 0.2s; margin-bottom: 2px;
+      width: 100%; padding: 12px 16px; background: transparent; border: none; border-radius: 10px;
+      color: var(--text-muted); display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: 0.2s; margin-bottom: 4px;
     }
     .nav-btn:hover { background: var(--bg-card); color: #fff; }
-    .nav-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
+    .nav-btn.active { background: linear-gradient(135deg, var(--accent-pink), var(--accent)); color: #fff; box-shadow: 0 4px 15px var(--accent-glow); }
 
-    .main-content { flex: 1; display: flex; flex-direction: column; }
+    .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); }
     .chat-header {
-      padding: 16px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+      padding: 18px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
       display: flex; justify-content: space-between; align-items: center;
     }
-    .chat-header h4 { font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
+    .chat-header h4 { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; color: #fff; }
 
     .messages { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
     .message {
-      background: var(--bg-panel); border: 1px solid var(--border); padding: 14px 16px;
-      border-radius: 12px; max-width: 75%; width: fit-content; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      background: var(--bg-panel); border: 1px solid var(--border); padding: 14px 18px;
+      border-radius: 14px; max-width: 70%; width: fit-content; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
       animation: fadeIn 0.2s ease-in-out;
     }
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     
-    .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-    .msg-author { font-weight: 700; font-size: 0.9rem; color: #fff; }
+    .msg-header { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .msg-author { font-weight: 700; font-size: 0.95rem; color: #fff; }
+    
     .role-badge {
-      font-size: 0.65rem; padding: 2px 8px; border-radius: 12px; font-weight: 700; text-transform: uppercase;
+      font-size: 0.7rem; padding: 3px 10px; border-radius: 20px; font-weight: 800; text-transform: uppercase;
+      background: rgba(165, 94, 234, 0.2); color: var(--accent); border: 1px solid var(--accent);
+      box-shadow: 0 0 10px var(--accent-glow);
     }
-    .role-3d-animator { background: rgba(255, 71, 87, 0.2); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.3); }
-    .role-voice-actor { background: rgba(46, 213, 115, 0.2); color: #2ed573; border: 1px solid rgba(46, 213, 115, 0.3); }
-    .role-scriptwriter { background: rgba(255, 165, 2, 0.2); color: #ffa502; border: 1px solid rgba(255, 165, 2, 0.3); }
-    .role-editor { background: rgba(30, 144, 255, 0.2); color: #1e90ff; border: 1px solid rgba(30, 144, 255, 0.3); }
 
-    .msg-text { color: var(--text-main); line-height: 1.4; font-size: 0.95rem; word-break: break-word; }
-    .msg-link { color: #70a1ff; text-decoration: underline; }
+    .msg-text { color: var(--text-main); line-height: 1.5; font-size: 0.95rem; word-break: break-word; }
+    .msg-link { color: var(--accent-pink); text-decoration: underline; }
 
-    .input-dock { padding: 16px 24px; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; gap: 12px; }
-    .input-dock input { margin: 0; background: var(--bg-card); }
-    .input-dock button { width: auto; padding: 0 24px; display: flex; align-items: center; gap: 8px; }
+    .input-dock { padding: 20px 24px; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; gap: 12px; }
+    .input-dock input { margin: 0; background: var(--bg-card); border-radius: 12px; }
+    .input-dock button { width: auto; padding: 0 28px; border-radius: 12px; display: flex; align-items: center; gap: 8px; }
+
+    /* Admin Role Modal */
+    .modal {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px);
+      justify-content: center; align-items: center; z-index: 200;
+    }
+    .modal-content {
+      background: var(--bg-panel); border: 1px solid var(--accent); padding: 30px; border-radius: 16px; width: 400px;
+    }
   </style>
 </head>
 <body>
 
   <div id="auth-screen">
     <div class="auth-card">
-      <h2>Splormb HQ</h2>
-      <p>Sign in with your team credentials.</p>
+      <h2>Muffins Place</h2>
+      <p>Enter credentials to access headquarters.</p>
       
       <input type="email" id="email-input" placeholder="Email Address">
       <input type="password" id="password-input" placeholder="Password">
 
-      <button class="btn-primary" id="auth-btn" onclick="handleAuth()"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
+      <button class="btn-primary" onclick="handleAuth()"><i class="fa-solid fa-bolt"></i> Login</button>
     </div>
   </div>
 
   <div id="app-screen">
     <div class="sidebar">
       <div class="brand">
-        <div class="brand-title"><i class="fa-solid fa-clapperboard"></i> Splormb HQ</div>
-        <button class="logout-btn" onclick="logout()" title="Sign Out"><i class="fa-solid fa-right-from-bracket"></i></button>
+        <div class="brand-title"><i class="fa-solid fa-cookie-bite"></i> Muffins Place</div>
+        <button class="logout-btn" onclick="logout()" title="Sign Out"><i class="fa-solid fa-power-off"></i></button>
       </div>
       
       <div class="section-title">Channels</div>
@@ -125,9 +140,9 @@
         <button class="nav-btn" onclick="switchRoom('scripts')"><i class="fa-solid fa-scroll"></i> scripts</button>
       </div>
 
-      <div class="section-title">Production</div>
+      <div class="section-title">Management</div>
       <div class="nav-list">
-        <button class="nav-btn" onclick="switchRoom('assets')"><i class="fa-solid fa-folder-open"></i> asset-links</button>
+        <button class="nav-btn" onclick="openRoleModal()"><i class="fa-solid fa-user-gear"></i> Set My Role</button>
       </div>
     </div>
 
@@ -139,9 +154,19 @@
       <div class="messages" id="message-container"></div>
       
       <div class="input-dock">
-        <input type="text" id="message-input" placeholder="Share updates, drop drive links, or chat..." onkeydown="if(event.key === 'Enter') sendMessage()">
+        <input type="text" id="message-input" placeholder="Drop a message..." onkeydown="if(event.key === 'Enter') sendMessage()">
         <button class="btn-primary" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i> Send</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Role Edit Modal -->
+  <div id="role-modal" class="modal">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 12px; font-weight: 800; color: #fff;">Update Your Display Role</h3>
+      <input type="text" id="custom-role-input" placeholder="e.g. Lead 3D Animator, Boss, Editor">
+      <button class="btn-primary" onclick="saveUserRole()">Save Role</button>
+      <button class="btn-primary" onclick="closeRoleModal()" style="background: transparent; border: 1px solid var(--border); margin-top: 8px;">Cancel</button>
     </div>
   </div>
 
