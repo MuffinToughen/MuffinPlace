@@ -17,7 +17,6 @@ const auth = firebase.auth();
 let currentUserData = null;
 let currentRoom = 'general';
 let unsubscribeListener = null;
-let isSignUpMode = false;
 
 auth.onAuthStateChanged(async (user) => {
   const authScreen = document.getElementById('auth-screen');
@@ -39,37 +38,19 @@ auth.onAuthStateChanged(async (user) => {
   }
 });
 
-function toggleAuthMode() {
-  isSignUpMode = !isSignUpMode;
-  document.getElementById('signup-fields').style.display = isSignUpMode ? 'block' : 'none';
-  document.getElementById('auth-title').innerText = isSignUpMode ? 'Create Account' : 'Splormb HQ';
-  document.getElementById('auth-subtitle').innerText = isSignUpMode ? 'Register your team identity.' : 'Sign in to access your workspace.';
-  document.getElementById('auth-btn').innerHTML = isSignUpMode ? '<i class="fa-solid fa-user-plus"></i> Register' : '<i class="fa-solid fa-right-to-bracket"></i> Login';
-  document.getElementById('toggle-link').innerText = isSignUpMode ? 'Already have an account? Login' : 'Need an account? Register';
-}
-
 async function handleAuth() {
   const email = document.getElementById('email-input').value.trim();
   const password = document.getElementById('password-input').value;
 
   if (!email || !password) {
-    alert("Please fill in both email and password.");
+    alert("Please enter your email and password.");
     return;
   }
 
   try {
-    if (isSignUpMode) {
-      const name = document.getElementById('username-input').value.trim();
-      const role = document.getElementById('role-select').value;
-      if (!name) { alert("Please enter a Display Name."); return; }
-
-      const cred = await auth.createUserWithEmailAndPassword(email, password);
-      await db.collection('users').doc(cred.user.uid).set({ name, role, email });
-    } else {
-      await auth.signInWithEmailAndPassword(email, password);
-    }
+    await auth.signInWithEmailAndPassword(email, password);
   } catch (error) {
-    alert(error.message);
+    alert("Invalid credentials or account non-existent.");
   }
 }
 
