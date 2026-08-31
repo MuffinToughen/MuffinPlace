@@ -247,7 +247,7 @@ function loadRoomMessages(room) {
           if (msg.fileType && msg.fileType.startsWith('image/')) {
             mediaHtml = `<img src="${msg.fileUrl}" class="msg-image" />`;
           } else {
-            mediaHtml = `<a href="${msg.fileUrl}" download="${msg.fileName || 'Attachment'}" class="msg-file-btn"><i class="fa-solid fa-file-arrow-down"></i> ${msg.fileName || 'Attachment'}</a>`;
+            mediaHtml = `<a href="${msg.fileUrl}" download="${msg.fileName || 'Attachment'}" class="msg-file-btn" target="_blank"><i class="fa-solid fa-file-arrow-down"></i> ${msg.fileName || 'Attachment'}</a>`;
           }
         }
 
@@ -307,24 +307,50 @@ async function deleteMessage(msgId) {
   }
 }
 
-function handleFileUpload(event) {
+// 200MB Any-File Uploader via Catbox API
+async function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  if (file.size > 10485760) { 
-    alert("File size too large for quick upload (max 10MB).");
+  const maxSizeBytes = 200 * 1024 * 1024; // 200 MB limit
+  if (file.size > maxSizeBytes) { 
+    alert("File is too large! Maximum size limit is 200 MB.");
     return;
   }
 
   showLoading(true);
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    sendMessage({
-      url: e.target.result,
-      name: file.name,
-      type: file.type
+
+  try {
+    const formData = new FormData();
+    formData.append("reqtype", "fileupload");
+    formData.append("fileToUpload", file);
+
+    const response = await fetch("https://corsproxy.io/?" + encodeURIComponent("https://catbox.moe/user/api.php"), {
+      method: "POST",
+      body: formData
     });
+
+    if (!response.ok) {
+      throw new Error("Server responded with status " + response.status);
+    }
+
+    const fileUrl = await response.text();
+
+    if (fileUrl && fileUrl.startsWith("http")) {
+      sendMessage({
+        url: fileUrl.trim(),
+        name: file.name,
+        type: file.type || 'application/octet-stream'
+      });
+    } else {
+      alert("Upload failed. Try again.");
+    }
+
+  } catch (error) {
+    console.error("Upload error:", error);
+    alert("Upload failed: " + error.message);
+  } finally {
     showLoading(false);
-  };
-  reader.readAsDataURL(file);
+    event.target.value = '';
+  }
 }
