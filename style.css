@@ -662,6 +662,12 @@ select:focus-visible {
   justify-content: space-between;
 }
 
+.modal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .modal-header h2 { margin: 0; font-size: 18px; }
 
 .modal-actions {
@@ -702,11 +708,20 @@ select:focus-visible {
 }
 
 .announcement-card {
+  position: relative;
   padding: 13px;
   background: var(--panel-3);
   border: 1px solid var(--border);
   border-left: 3px solid var(--purple);
   border-radius: 10px;
+}
+
+.announcement-card:has(.announcement-delete) { padding-right: 54px; }
+
+.announcement-delete {
+  position: absolute;
+  top: 8px;
+  right: 8px;
 }
 
 .announcement-card-header {
