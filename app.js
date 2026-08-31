@@ -10,6 +10,7 @@ const firebaseConfig = {
 if (!firebase.apps.length) {
   firebase.initializeApp(firebaseConfig);
 }
+
 const db = firebase.firestore();
 const auth = firebase.auth();
 
@@ -18,8 +19,10 @@ let currentRoom = 'general';
 let unsubscribeListener = null;
 let isSignUpMode = false;
 
-// Persistent Auth Listener: Keeps user logged in across page refreshes
 auth.onAuthStateChanged(async (user) => {
+  const authScreen = document.getElementById('auth-screen');
+  const appScreen = document.getElementById('app-screen');
+
   if (user) {
     const userDoc = await db.collection('users').doc(user.uid).get();
     if (userDoc.exists) {
@@ -27,12 +30,12 @@ auth.onAuthStateChanged(async (user) => {
     } else {
       currentUserData = { name: user.email.split('@')[0], role: 'Member' };
     }
-    document.getElementById('auth-screen').style.display = 'none';
-    document.getElementById('app-screen').style.display = 'flex';
+    if (authScreen) authScreen.style.display = 'none';
+    if (appScreen) appScreen.style.display = 'flex';
     loadRoomMessages('general');
   } else {
-    document.getElementById('auth-screen').style.display = 'flex';
-    document.getElementById('app-screen').style.display = 'none';
+    if (authScreen) authScreen.style.display = 'flex';
+    if (appScreen) appScreen.style.display = 'none';
   }
 });
 
@@ -95,6 +98,7 @@ function formatText(text) {
 
 function loadRoomMessages(room) {
   const container = document.getElementById('message-container');
+  if (!container) return;
   container.innerHTML = '';
 
   if (unsubscribeListener) unsubscribeListener();
