@@ -450,7 +450,8 @@ select:focus-visible {
 }
 
 .message:hover .msg-actions,
-.message:focus-within .msg-actions {
+.message:focus-within .msg-actions,
+.message.actions-open .msg-actions {
   opacity: 1;
   transform: translateY(0);
   pointer-events: auto;
@@ -842,7 +843,8 @@ select:focus-visible {
   .lightbox { padding: 20px; }
   .toast-container { right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); }
   .toast { min-width: 0; width: min(360px, calc(100vw - 20px)); }
-  .msg-actions { opacity: 1; pointer-events: auto; transform: none; }
+  .msg-actions { opacity: 0; pointer-events: none; transform: translateY(3px); }
+  .message.actions-open .msg-actions { opacity: 1; pointer-events: auto; transform: none; }
   .channel-manager-row { grid-template-columns: 1fr auto; }
   .channel-manager-row input { grid-column: 1 / -1; }
 }
