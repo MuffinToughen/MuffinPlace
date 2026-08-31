@@ -23,6 +23,7 @@ function showLoading(show = true) {
   if (loader) loader.style.display = show ? 'flex' : 'none';
 }
 
+// Authentication State Observer
 auth.onAuthStateChanged(async (user) => {
   showLoading(true);
   const authScreen = document.getElementById('auth-screen');
@@ -32,7 +33,7 @@ auth.onAuthStateChanged(async (user) => {
   if (user) {
     try {
       const userDoc = await db.collection('users').doc(user.uid).get();
-      const username = user.email.split('@')[0];
+      const username = user.email ? user.email.split('@')[0] : 'User';
       
       if (userDoc.exists) {
         currentUserData = userDoc.data();
@@ -43,35 +44,40 @@ auth.onAuthStateChanged(async (user) => {
       }
 
       if (roleBtn) {
-        roleBtn.style.display = (username === 'muffintoughen') ? 'flex' : 'none';
+        roleBtn.style.display = (currentUserData.name === 'muffintoughen') ? 'flex' : 'none';
       }
 
     } catch (e) {
-      console.error(e);
-      currentUserData = { name: user.email.split('@')[0], roles: ['Member'] };
+      console.error("Firestore User Error:", e);
+      currentUserData = { name: user.email ? user.email.split('@')[0] : 'User', roles: ['Member'] };
     }
     
     if (authScreen) authScreen.style.display = 'none';
     if (appScreen) appScreen.style.display = 'flex';
     loadRoomMessages('general');
   } else {
+    currentUserData = null;
     if (authScreen) authScreen.style.display = 'flex';
     if (appScreen) appScreen.style.display = 'none';
   }
   showLoading(false);
 });
 
+// Explicit Handle Login Function
 async function handleAuth() {
   const emailInput = document.getElementById('email-input');
   const passwordInput = document.getElementById('password-input');
-  
-  if (!emailInput || !passwordInput) return;
+
+  if (!emailInput || !passwordInput) {
+    alert("UI elements missing. Refresh page.");
+    return;
+  }
 
   const email = emailInput.value.trim();
   const password = passwordInput.value;
 
   if (!email || !password) {
-    alert("Please enter credentials.");
+    alert("Please enter both email and password.");
     return;
   }
 
@@ -79,15 +85,17 @@ async function handleAuth() {
   try {
     await auth.signInWithEmailAndPassword(email, password);
   } catch (error) {
-    alert("Login failed: " + error.message);
+    showLoading(false);
+    alert("Auth Failed: " + error.message);
   }
-  showLoading(false);
 }
 
 function logout() {
+  if (unsubscribeListener) unsubscribeListener();
   auth.signOut();
 }
 
+// Admin Role Panel
 async function openRoleModal() {
   if (currentUserData && currentUserData.name === 'muffintoughen') {
     showLoading(true);
@@ -96,14 +104,18 @@ async function openRoleModal() {
     
     dropdown.innerHTML = '';
     
-    const usersSnap = await db.collection('users').get();
-    usersSnap.forEach(doc => {
-      const data = doc.data();
-      const opt = document.createElement('option');
-      opt.value = doc.id;
-      opt.innerText = `${data.name || 'User'} (${(data.roles || []).join(', ')})`;
-      dropdown.appendChild(opt);
-    });
+    try {
+      const usersSnap = await db.collection('users').get();
+      usersSnap.forEach(doc => {
+        const data = doc.data();
+        const opt = document.createElement('option');
+        opt.value = doc.id;
+        opt.innerText = `${data.name || 'User'} (${(data.roles || []).join(', ')})`;
+        dropdown.appendChild(opt);
+      });
+    } catch (err) {
+      console.error(err);
+    }
 
     showLoading(false);
     const modal = document.getElementById('role-modal');
@@ -136,32 +148,37 @@ async function saveTargetUserRoles() {
   loadRoomMessages(currentRoom);
 }
 
+// Profile Card
 async function openUserProfile(name) {
   showLoading(true);
-  const usersSnap = await db.collection('users').where('name', '==', name).get();
-  
-  if (!usersSnap.empty) {
-    const userData = usersSnap.docs[0].data();
-    const nameEl = document.getElementById('profile-name');
-    const emailEl = document.getElementById('profile-email');
-    const container = document.getElementById('profile-roles-container');
+  try {
+    const usersSnap = await db.collection('users').where('name', '==', name).get();
     
-    if (nameEl) nameEl.innerText = userData.name || name;
-    if (emailEl) emailEl.innerText = userData.email || 'No email registered';
-    
-    if (container) {
-      container.innerHTML = '';
-      const roles = userData.roles || (userData.role ? [userData.role] : ['Member']);
-      roles.forEach(r => {
-        const badge = document.createElement('span');
-        badge.className = 'role-badge';
-        badge.innerText = r;
-        container.appendChild(badge);
-      });
-    }
+    if (!usersSnap.empty) {
+      const userData = usersSnap.docs[0].data();
+      const nameEl = document.getElementById('profile-name');
+      const emailEl = document.getElementById('profile-email');
+      const container = document.getElementById('profile-roles-container');
+      
+      if (nameEl) nameEl.innerText = userData.name || name;
+      if (emailEl) emailEl.innerText = userData.email || 'No email registered';
+      
+      if (container) {
+        container.innerHTML = '';
+        const roles = userData.roles || (userData.role ? [userData.role] : ['Member']);
+        roles.forEach(r => {
+          const badge = document.createElement('span');
+          badge.className = 'role-badge';
+          badge.innerText = r;
+          container.appendChild(badge);
+        });
+      }
 
-    const modal = document.getElementById('profile-modal');
-    if (modal) modal.style.display = 'flex';
+      const modal = document.getElementById('profile-modal');
+      if (modal) modal.style.display = 'flex';
+    }
+  } catch (e) {
+    console.error(e);
   }
   showLoading(false);
 }
@@ -194,7 +211,6 @@ function formatText(text) {
 function loadRoomMessages(room) {
   const container = document.getElementById('message-container');
   if (!container) return;
-  container.innerHTML = '';
 
   if (unsubscribeListener) unsubscribeListener();
 
