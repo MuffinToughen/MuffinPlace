@@ -33,6 +33,7 @@ const MAX_IMAGE_DIMENSION = 1280;
 
 const DEFAULT_ROLES = ["Member"];
 const OWNER_USERNAMES = ["muffintoughen"];
+const BUILT_IN_CHANNELS = ["general", "3d-animation", "voice-acting", "scripts"];
 
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
@@ -47,12 +48,14 @@ let editingMessageId = null;
 let typingTimeout = null;
 let unreadAnnouncementsCount = 0;
 let announcementInitialized = false;
+let channelRules = {};
 
 const listeners = {
   messages: null,
   typing: null,
   announcementsBackground: null,
-  announcementsList: null
+  announcementsList: null,
+  channels: null
 };
 
 const $ = (id) => document.getElementById(id);
@@ -112,6 +115,41 @@ function isAdmin() {
   return currentUserData?.roles?.some(role =>
     ["OWNER", "ADMIN"].includes(String(role).toUpperCase())
   );
+}
+
+function normalizeRoles(value = "") {
+  return [...new Set(
+    String(value)
+      .split(",")
+      .map(role => role.trim().toUpperCase())
+      .filter(Boolean)
+  )];
+}
+
+function canPostInRoom(room = currentRoom) {
+  if (isOwner()) return true;
+
+  const allowedRoles = channelRules[room]?.allowedRoles || [];
+
+  if (!allowedRoles.length) return true;
+
+  const userRoles = (currentUserData?.roles || [])
+    .map(role => String(role).toUpperCase());
+
+  return allowedRoles.some(role => userRoles.includes(role));
+}
+
+function updatePostingPermission() {
+  const allowed = canPostInRoom();
+  const input = $("message-input");
+
+  input.disabled = !allowed;
+  $("send-btn").disabled = !allowed;
+  $("file-upload").disabled = !allowed;
+  $("file-upload-label").classList.toggle("is-disabled", !allowed);
+  input.placeholder = allowed
+    ? "Drop a message..."
+    : "You do not have permission to post in this channel.";
 }
 
 function stopListener(name) {
@@ -366,6 +404,10 @@ function updateCurrentUserUI() {
 
   $("announcement-compose").hidden = !isAdmin();
 
+  $("channel-manager-btn").hidden = !isOwner();
+
+  updatePostingPermission();
+
 }
 
 
@@ -399,6 +441,8 @@ auth.onAuthStateChanged(async user => {
 
     startAnnouncementBackgroundListener();
 
+    startChannelListener();
+
   } catch (error) {
 
     console.error(error);
@@ -420,6 +464,44 @@ auth.onAuthStateChanged(async user => {
 // ==========================================
 // ROOMS
 // ==========================================
+
+function startChannelListener() {
+  stopListener("channels");
+
+  listeners.channels = db.collection("channels").onSnapshot(snapshot => {
+    channelRules = {};
+
+    snapshot.forEach(doc => {
+      channelRules[doc.id] = { id: doc.id, ...doc.data() };
+    });
+
+    renderCustomChannels();
+    renderChannelManager();
+    updatePostingPermission();
+  }, error => {
+    console.error(error);
+    showToast("Could not load channel settings.", "error");
+  });
+}
+
+function renderCustomChannels() {
+  const container = $("custom-channels");
+  container.replaceChildren();
+
+  Object.values(channelRules)
+    .filter(channel => !BUILT_IN_CHANNELS.includes(channel.id))
+    .sort((a, b) => String(a.name || a.id).localeCompare(String(b.name || b.id)))
+    .forEach(channel => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "nav-btn";
+      button.dataset.room = channel.id;
+      button.innerHTML = '<i class="fa-solid fa-hashtag"></i>';
+      button.appendChild(document.createTextNode(channel.name || channel.id));
+      button.addEventListener("click", () => switchRoom(channel.id));
+      container.appendChild(button);
+    });
+}
 
 function switchRoom(roomName, force = false) {
 
@@ -461,6 +543,8 @@ function switchRoom(roomName, force = false) {
   listenTypingStatus(roomName);
 
   updateTypingStatus(false);
+
+  updatePostingPermission();
 
   closeSidebar();
 
@@ -748,7 +832,8 @@ async function sendMessage() {
   if (
     !text ||
     !currentUserData ||
-    currentRoom === "audit-logs"
+    currentRoom === "audit-logs" ||
+    !canPostInRoom()
   ) {
     return;
   }
@@ -1148,6 +1233,12 @@ function createImageProgress(imageName) {
 async function uploadSelectedImage(file) {
 
   if (!file || !currentUserData) {
+    return;
+  }
+
+  if (!canPostInRoom()) {
+    showToast("You do not have permission to post in this channel.", "error");
+    $("file-upload").value = "";
     return;
   }
 
@@ -1765,13 +1856,17 @@ function createAnnouncementCard(data) {
 
 
   const author =
-    document.createElement("span");
+    document.createElement("button");
 
   author.className =
     "announcement-author";
 
+  author.type = "button";
+
   author.textContent =
     data.author || "Admin";
+
+  author.addEventListener("click", () => openUserProfile(data.uid));
 
 
   const time =
@@ -1963,6 +2058,167 @@ async function openUserProfile(uid) {
 // ==========================================
 // ROLE MANAGEMENT
 // ==========================================
+
+function openChannelManager() {
+  if (!isOwner()) {
+    showToast("Only the owner can manage channels.", "error");
+    return;
+  }
+
+  renderChannelManager();
+  openModal("channel-modal");
+}
+
+function renderChannelManager() {
+  const list = $("channel-manager-list");
+  if (!list) return;
+
+  list.replaceChildren();
+
+  const channels = [
+    ...BUILT_IN_CHANNELS.map(id => channelRules[id] || { id, name: id }),
+    ...Object.values(channelRules).filter(channel => !BUILT_IN_CHANNELS.includes(channel.id))
+  ];
+
+  channels.forEach(channel => {
+    const row = document.createElement("div");
+    row.className = "channel-manager-row";
+
+    const details = document.createElement("div");
+    const name = document.createElement("strong");
+    name.textContent = `# ${channel.name || channel.id}`;
+    const hint = document.createElement("small");
+    hint.textContent = channel.allowedRoles?.length
+      ? `Posting: ${channel.allowedRoles.join(", ")}`
+      : "Posting: everyone";
+    details.append(name, hint);
+
+    const rolesInput = document.createElement("input");
+    rolesInput.type = "text";
+    rolesInput.maxLength = 200;
+    rolesInput.value = (channel.allowedRoles || []).join(", ");
+    rolesInput.placeholder = "Everyone can post";
+    rolesInput.setAttribute("aria-label", `Roles allowed to post in ${channel.name || channel.id}`);
+
+    const save = document.createElement("button");
+    save.type = "button";
+    save.className = "btn-secondary channel-row-button";
+    save.textContent = "Save access";
+    save.addEventListener("click", async () => {
+      await db.collection("channels").doc(channel.id).set({
+        name: channel.name || channel.id,
+        allowedRoles: normalizeRoles(rolesInput.value),
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      showToast(`Access saved for #${channel.name || channel.id}.`);
+    });
+
+    row.append(details, rolesInput, save);
+
+    if (!BUILT_IN_CHANNELS.includes(channel.id)) {
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "icon-btn danger";
+      remove.title = "Delete channel";
+      remove.setAttribute("aria-label", `Delete ${channel.name || channel.id}`);
+      remove.innerHTML = '<i class="fa-solid fa-trash"></i>';
+      remove.addEventListener("click", () => deleteChannel(channel));
+      row.appendChild(remove);
+    }
+
+    list.appendChild(row);
+  });
+}
+
+async function createChannel() {
+  if (!isOwner()) return;
+
+  const name = $("new-channel-name").value.trim();
+  const id = name.toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  if (!id) {
+    showToast("Enter a channel name using letters or numbers.", "error");
+    return;
+  }
+
+  if (BUILT_IN_CHANNELS.includes(id) || channelRules[id]) {
+    showToast("That channel already exists.", "error");
+    return;
+  }
+
+  try {
+    await db.collection("channels").doc(id).set({
+      name: id,
+      allowedRoles: normalizeRoles($("new-channel-roles").value),
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      createdBy: auth.currentUser.uid
+    });
+    $("new-channel-name").value = "";
+    $("new-channel-roles").value = "";
+    showToast(`Created #${id}.`);
+  } catch (error) {
+    console.error(error);
+    showToast("Could not create the channel.", "error");
+  }
+}
+
+async function deleteAllMessages(room) {
+  let deleted = 0;
+
+  while (true) {
+    const snapshot = await db.collection("rooms").doc(room)
+      .collection("messages").limit(400).get();
+
+    if (snapshot.empty) return deleted;
+
+    const batch = db.batch();
+    snapshot.forEach(doc => batch.delete(doc.ref));
+    await batch.commit();
+    deleted += snapshot.size;
+  }
+}
+
+async function clearCurrentChannel() {
+  if (!isOwner()) return;
+
+  if (!confirm(`Delete every message in #${currentRoom}? This cannot be undone.`)) {
+    return;
+  }
+
+  showLoading(true);
+  try {
+    const count = await deleteAllMessages(currentRoom);
+    showToast(`Deleted ${count} message${count === 1 ? "" : "s"}.`);
+  } catch (error) {
+    console.error(error);
+    showToast("Could not delete all messages. Check Firestore rules.", "error");
+  } finally {
+    showLoading(false);
+  }
+}
+
+async function deleteChannel(channel) {
+  if (!isOwner()) return;
+
+  if (!confirm(`Delete #${channel.name || channel.id} and all of its messages? This cannot be undone.`)) {
+    return;
+  }
+
+  showLoading(true);
+  try {
+    await deleteAllMessages(channel.id);
+    await db.collection("channels").doc(channel.id).delete();
+    if (currentRoom === channel.id) switchRoom("general", true);
+    showToast(`Deleted #${channel.name || channel.id}.`);
+  } catch (error) {
+    console.error(error);
+    showToast("Could not delete the channel. Check Firestore rules.", "error");
+  } finally {
+    showLoading(false);
+  }
+}
 
 async function openRoleModal() {
 
@@ -2622,6 +2878,27 @@ $("message-form")
       sendMessage();
 
     }
+  );
+
+
+$("channel-manager-btn")
+  .addEventListener(
+    "click",
+    openChannelManager
+  );
+
+
+$("create-channel-btn")
+  .addEventListener(
+    "click",
+    createChannel
+  );
+
+
+$("clear-current-channel-btn")
+  .addEventListener(
+    "click",
+    clearCurrentChannel
   );
 
 
