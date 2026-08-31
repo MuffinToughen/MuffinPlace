@@ -118,4 +118,111 @@
     .msg-edited { font-size: 0.7rem; color: var(--text-muted); margin-left: 6px; }
     .msg-link { color: var(--accent-pink); text-decoration: underline; }
     .msg-image { max-width: 100%; max-height: 300px; border-radius: 10px; margin-top: 8px; display: block; border: 1px solid var(--border); }
-    .msg-file-btn { display: inline
+    .msg-file-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--bg-card); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; color: var(--accent-pink); text-decoration: none; margin-top: 8px; font-size: 0.85rem; font-weight: 600; }
+
+    .input-dock { padding: 20px 24px; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; gap: 12px; align-items: center; }
+    .input-dock input[type="text"] { margin: 0; background: var(--bg-card); border-radius: 12px; flex: 1; }
+    .input-dock button { width: auto; padding: 0 24px; height: 45px; border-radius: 12px; display: flex; align-items: center; gap: 8px; }
+    .upload-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; }
+    .upload-btn:hover { color: var(--accent-pink); border-color: var(--accent-pink); }
+
+    .modal {
+      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
+      justify-content: center; align-items: center; z-index: 2000;
+    }
+    .modal-content {
+      background: var(--bg-panel); border: 1px solid var(--accent); padding: 30px; border-radius: 16px; width: 400px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="loading-screen">
+    <div class="spinner"></div>
+    <p style="color: var(--text-muted); font-weight: 600;">Loading Muffins Place...</p>
+  </div>
+
+  <div id="auth-screen">
+    <div class="auth-card">
+      <h2>Muffins Place</h2>
+      <p>Enter credentials to access headquarters.</p>
+      
+      <input type="email" id="email-input" placeholder="Email Address">
+      <input type="password" id="password-input" placeholder="Password">
+
+      <button class="btn-primary" onclick="handleAuth()"><i class="fa-solid fa-bolt"></i> Login</button>
+    </div>
+  </div>
+
+  <div id="app-screen">
+    <div class="sidebar">
+      <div class="brand">
+        <div class="brand-title"><i class="fa-solid fa-cookie-bite"></i> Muffins Place</div>
+        <button class="logout-btn" onclick="logout()" title="Sign Out"><i class="fa-solid fa-power-off"></i></button>
+      </div>
+      
+      <div class="section-title">Channels</div>
+      <div class="nav-list">
+        <button class="nav-btn active" onclick="switchRoom('general')"><i class="fa-solid fa-hashtag"></i> general</button>
+        <button class="nav-btn" onclick="switchRoom('animation')"><i class="fa-solid fa-cube"></i> 3d-animation</button>
+        <button class="nav-btn" onclick="switchRoom('voice-acting')"><i class="fa-solid fa-microphone"></i> voice-acting</button>
+        <button class="nav-btn" onclick="switchRoom('scripts')"><i class="fa-solid fa-scroll"></i> scripts</button>
+      </div>
+
+      <div class="section-title">Admin Management</div>
+      <div class="nav-list">
+        <button class="nav-btn" id="role-btn" onclick="openRoleModal()"><i class="fa-solid fa-user-gear"></i> Manage Roles</button>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="chat-header">
+        <h4 id="current-room-title"><i class="fa-solid fa-hashtag"></i> general</h4>
+      </div>
+      
+      <div class="messages" id="message-container"></div>
+      
+      <div class="input-dock">
+        <label class="upload-btn" title="Upload File or Image">
+          <i class="fa-solid fa-paperclip"></i>
+          <input type="file" id="file-input" style="display: none;" onchange="handleFileUpload(event)">
+        </label>
+        <input type="text" id="message-input" placeholder="Drop a message..." onkeydown="if(event.key === 'Enter') sendMessage()">
+        <button class="btn-primary" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i> Send</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="role-modal" class="modal">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 14px; font-weight: 800; color: #fff;">Assign Roles to User</h3>
+      <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Select User:</label>
+      <select id="user-select-dropdown"></select>
+      
+      <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Roles (separate multiples with commas):</label>
+      <input type="text" id="custom-role-input" placeholder="e.g. OWNER, 3D ANIMATOR, EDITOR">
+      
+      <button class="btn-primary" onclick="saveTargetUserRoles()">Save Roles</button>
+      <button class="btn-primary" onclick="closeRoleModal()" style="background: transparent; border: 1px solid var(--border); margin-top: 8px;">Cancel</button>
+    </div>
+  </div>
+
+  <div id="profile-modal" class="modal">
+    <div class="modal-content" style="text-align: center;">
+      <div style="font-size: 3rem; color: var(--accent-pink); margin-bottom: 8px;"><i class="fa-solid fa-circle-user"></i></div>
+      <h3 id="profile-name" style="font-weight: 800; color: #fff; font-size: 1.4rem;">-</h3>
+      <p id="profile-email" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">-</p>
+      
+      <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 8px; font-weight: 800;">Assigned Roles</div>
+      <div id="profile-roles-container" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;"></div>
+      
+      <button class="btn-primary" onclick="closeProfileModal()">Close Profile</button>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
