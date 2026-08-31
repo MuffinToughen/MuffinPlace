@@ -32,6 +32,7 @@ const MAX_FINAL_IMAGE_BYTES = 700 * 1024;
 const MAX_IMAGE_DIMENSION = 1280;
 
 const DEFAULT_ROLES = ["Member"];
+const OWNER_USERNAMES = ["muffintoughen"];
 
 const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
@@ -102,7 +103,9 @@ function formatTime(timestamp) {
 }
 
 function isOwner() {
-  return currentUserData?.roles?.includes("OWNER");
+  return currentUserData?.roles?.some(role =>
+    String(role).toUpperCase() === "OWNER"
+  );
 }
 
 function isAdmin() {
@@ -287,10 +290,25 @@ async function loadOrCreateUser(user) {
 
   if (snapshot.exists) {
 
-    return {
+    const data = {
       uid: user.uid,
       ...snapshot.data()
     };
+
+    const isConfiguredOwner = OWNER_USERNAMES.includes(
+      String(data.name || "").trim().toLowerCase()
+    );
+
+    const hasOwnerRole = (data.roles || []).some(role =>
+      String(role).toUpperCase() === "OWNER"
+    );
+
+    if (isConfiguredOwner && !hasOwnerRole) {
+      data.roles = ["OWNER", ...(data.roles || DEFAULT_ROLES)];
+      await ref.update({ roles: data.roles });
+    }
+
+    return data;
 
   }
 
@@ -302,7 +320,9 @@ async function loadOrCreateUser(user) {
 
     name,
 
-    roles: DEFAULT_ROLES,
+    roles: OWNER_USERNAMES.includes(name.toLowerCase())
+      ? ["OWNER", ...DEFAULT_ROLES]
+      : DEFAULT_ROLES,
 
     createdAt:
       firebase.firestore.FieldValue.serverTimestamp()
@@ -2600,6 +2620,24 @@ $("message-form")
       event.preventDefault();
 
       sendMessage();
+
+    }
+  );
+
+
+$("message-input")
+  .addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key === "Enter" &&
+        !event.shiftKey &&
+        !event.isComposing
+      ) {
+        event.preventDefault();
+        sendMessage();
+      }
 
     }
   );
