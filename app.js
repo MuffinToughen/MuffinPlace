@@ -1,5 +1,5 @@
 const firebaseConfig = {
-  apiKey: "AIzaSyBQJ85vIe3bvFX9VXuEvUmCKpyhX2MNmfo",
+  apiKey: "AIzaSyBQJ85vle3bvFX9VXuEvUmCKpyhX2MNmfo",
   authDomain: "teamchatapp-5877c.firebaseapp.com",
   projectId: "teamchatapp-5877c",
   storageBucket: "teamchatapp-5877c.firebasestorage.app",
@@ -23,12 +23,17 @@ auth.onAuthStateChanged(async (user) => {
   const appScreen = document.getElementById('app-screen');
 
   if (user) {
-    const userDoc = await db.collection('users').doc(user.uid).get();
-    if (userDoc.exists) {
-      currentUserData = userDoc.data();
-    } else {
+    try {
+      const userDoc = await db.collection('users').doc(user.uid).get();
+      if (userDoc.exists) {
+        currentUserData = userDoc.data();
+      } else {
+        currentUserData = { name: user.email.split('@')[0], role: 'Member' };
+      }
+    } catch (e) {
       currentUserData = { name: user.email.split('@')[0], role: 'Member' };
     }
+    
     if (authScreen) authScreen.style.display = 'none';
     if (appScreen) appScreen.style.display = 'flex';
     loadRoomMessages('general');
@@ -50,7 +55,7 @@ async function handleAuth() {
   try {
     await auth.signInWithEmailAndPassword(email, password);
   } catch (error) {
-    alert("Invalid credentials or account non-existent.");
+    alert("Login failed: " + error.message);
   }
 }
 
