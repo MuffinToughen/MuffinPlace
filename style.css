@@ -19,21 +19,15 @@ body {
   display: none !important;
 }
 
-/* Hide edit/delete actions by default, show ONLY on message hover */
+/* Edit and Delete Buttons Always Visible */
 .msg-actions {
   position: absolute;
   top: 6px; 
   right: 8px;
   display: flex;
   gap: 6px;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease-in-out;
-}
-
-.message:hover .msg-actions {
-  opacity: 1;
-  pointer-events: auto;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 /* Floating announcement ring button */
@@ -60,6 +54,52 @@ body {
 
 #announcement-ring-btn:hover {
   transform: scale(1.08);
+}
+
+/* Notification Red Badge */
+#announcement-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background-color: #ef4444;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: bold;
+  border-radius: 50%;
+  padding: 2px 6px;
+  border: 2px solid #0f0f13;
+  display: none;
+  animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Notification Permission Banner */
+#notif-banner {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e1b4b;
+  border: 1px solid #6366f1;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 13px;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  animation: slideDown 0.4s ease;
+}
+
+#notif-banner button {
+  background: #6366f1;
+  border: none;
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: bold;
 }
 
 /* Layout Screens */
@@ -213,6 +253,7 @@ body {
   gap: 12px;
 }
 
+/* Message Smooth Slide In Animation */
 .message {
   background: #181820;
   padding: 10px 14px;
@@ -221,6 +262,7 @@ body {
   max-width: 80%;
   align-self: flex-start;
   word-break: break-word;
+  animation: slideIn 0.25s ease-out forwards;
 }
 
 .msg-header {
@@ -288,6 +330,11 @@ body {
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  transition: transform 0.1s ease;
+}
+
+.send-btn:active {
+  transform: scale(0.92);
 }
 
 .send-btn {
@@ -312,6 +359,7 @@ body {
   border-radius: 8px;
   width: 320px;
   color: #fff;
+  animation: modalPop 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .modal-header {
@@ -339,4 +387,25 @@ body {
   border-radius: 4px;
   font-size: 11px;
   font-weight: bold;
+}
+
+/* Animations */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes modalPop {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes popIn {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
 }
