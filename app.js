@@ -421,6 +421,10 @@ auth.onAuthStateChanged(async user => {
 
     $("app-screen").hidden = true;
 
+    // A first-time mobile visitor has no saved Firebase session.
+    // Do not leave the loading overlay on top of the sign-in screen.
+    showLoading(false);
+
     return;
   }
 
