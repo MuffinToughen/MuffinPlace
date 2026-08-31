@@ -13,13 +13,18 @@ if (!firebase.apps.length) {
 
 const db = firebase.firestore();
 const auth = firebase.auth();
-const storage = firebase.storage();
 
 let currentUserData = null;
 let currentRoom = 'general';
 let unsubscribeListener = null;
 
+function showLoading(show = true) {
+  const loader = document.getElementById('loading-screen');
+  if (loader) loader.style.display = show ? 'flex' : 'none';
+}
+
 auth.onAuthStateChanged(async (user) => {
+  showLoading(true);
   const authScreen = document.getElementById('auth-screen');
   const appScreen = document.getElementById('app-screen');
   const roleBtn = document.getElementById('role-btn');
@@ -32,19 +37,19 @@ auth.onAuthStateChanged(async (user) => {
       if (userDoc.exists) {
         currentUserData = userDoc.data();
       } else {
-        const defaultRole = (username === 'muffintoughen') ? 'OWNER' : 'Member';
-        currentUserData = { name: username, role: defaultRole };
+        const defaultRoles = (username === 'muffintoughen') ? ['OWNER', 'BOSS'] : ['Member'];
+        currentUserData = { name: username, email: user.email, roles: defaultRoles };
         await db.collection('users').doc(user.uid).set(currentUserData);
       }
 
       if (username === 'muffintoughen') {
-        roleBtn.style.display = 'flex';
+        if (roleBtn) roleBtn.style.display = 'flex';
       } else {
-        roleBtn.style.display = 'none';
+        if (roleBtn) roleBtn.style.display = 'none';
       }
 
     } catch (e) {
-      currentUserData = { name: user.email.split('@')[0], role: 'Member' };
+      currentUserData = { name: user.email.split('@')[0], roles: ['Member'] };
     }
     
     if (authScreen) authScreen.style.display = 'none';
@@ -54,6 +59,7 @@ auth.onAuthStateChanged(async (user) => {
     if (authScreen) authScreen.style.display = 'flex';
     if (appScreen) appScreen.style.display = 'none';
   }
+  showLoading(false);
 });
 
 async function handleAuth() {
@@ -65,19 +71,35 @@ async function handleAuth() {
     return;
   }
 
+  showLoading(true);
   try {
     await auth.signInWithEmailAndPassword(email, password);
   } catch (error) {
     alert("Login failed: " + error.message);
   }
+  showLoading(false);
 }
 
 function logout() {
   auth.signOut();
 }
 
-function openRoleModal() {
+async function openRoleModal() {
   if (currentUserData && currentUserData.name === 'muffintoughen') {
+    showLoading(true);
+    const dropdown = document.getElementById('user-select-dropdown');
+    dropdown.innerHTML = '';
+    
+    const usersSnap = await db.collection('users').get();
+    usersSnap.forEach(doc => {
+      const data = doc.data();
+      const opt = document.createElement('option');
+      opt.value = doc.id;
+      opt.innerText = `${data.name} (${(data.roles || []).join(', ')})`;
+      dropdown.appendChild(opt);
+    });
+
+    showLoading(false);
     document.getElementById('role-modal').style.display = 'flex';
   }
 }
@@ -86,16 +108,50 @@ function closeRoleModal() {
   document.getElementById('role-modal').style.display = 'none';
 }
 
-async function saveUserRole() {
-  const newRole = document.getElementById('custom-role-input').value.trim();
-  const user = auth.currentUser;
+async function saveTargetUserRoles() {
+  const dropdown = document.getElementById('user-select-dropdown');
+  const targetUid = dropdown.value;
+  const rawRoles = document.getElementById('custom-role-input').value.trim();
   
-  if (!newRole || !user) return;
+  if (!targetUid || !rawRoles) return;
+  
+  const rolesArray = rawRoles.split(',').map(r => r.trim()).filter(r => r.length > 0);
 
-  currentUserData.role = newRole;
-  await db.collection('users').doc(user.uid).set(currentUserData, { merge: true });
+  showLoading(true);
+  await db.collection('users').doc(targetUid).set({ roles: rolesArray }, { merge: true });
+  showLoading(false);
+
   closeRoleModal();
   loadRoomMessages(currentRoom);
+}
+
+async function openUserProfile(name) {
+  showLoading(true);
+  const usersSnap = await db.collection('users').where('name', '==', name).get();
+  
+  if (!usersSnap.empty) {
+    const userData = usersSnap.docs[0].data();
+    document.getElementById('profile-name').innerText = userData.name || name;
+    document.getElementById('profile-email').innerText = userData.email || 'No email registered';
+    
+    const container = document.getElementById('profile-roles-container');
+    container.innerHTML = '';
+    
+    const roles = userData.roles || (userData.role ? [userData.role] : ['Member']);
+    roles.forEach(r => {
+      const badge = document.createElement('span');
+      badge.className = 'role-badge';
+      badge.innerText = r;
+      container.appendChild(badge);
+    });
+
+    document.getElementById('profile-modal').style.display = 'flex';
+  }
+  showLoading(false);
+}
+
+function closeProfileModal() {
+  document.getElementById('profile-modal').style.display = 'none';
 }
 
 function switchRoom(roomName) {
@@ -146,20 +202,26 @@ function loadRoomMessages(room) {
           `;
         }
 
+        let rolesHtml = '';
+        const rolesList = msg.roles || (msg.role ? [msg.role] : ['Member']);
+        rolesList.forEach(r => {
+          rolesHtml += `<span class="role-badge">${r}</span>`;
+        });
+
         let mediaHtml = '';
         if (msg.fileUrl) {
           if (msg.fileType && msg.fileType.startsWith('image/')) {
             mediaHtml = `<img src="${msg.fileUrl}" class="msg-image" />`;
           } else {
-            mediaHtml = `<a href="${msg.fileUrl}" target="_blank" class="msg-file-btn"><i class="fa-solid fa-file-arrow-down"></i> ${msg.fileName || 'Attachment'}</a>`;
+            mediaHtml = `<a href="${msg.fileUrl}" download="${msg.fileName || 'Attachment'}" class="msg-file-btn"><i class="fa-solid fa-file-arrow-down"></i> ${msg.fileName || 'Attachment'}</a>`;
           }
         }
 
         div.innerHTML = `
           ${actionsHtml}
           <div class="msg-header">
-            <span class="msg-author">${msg.name || 'Anonymous'}</span>
-            <span class="role-badge">${msg.role || 'Member'}</span>
+            <span class="msg-author" onclick="openUserProfile('${msg.name}')">${msg.name || 'Anonymous'}</span>
+            ${rolesHtml}
           </div>
           <div class="msg-text">${formatText(msg.text || '')}${msg.edited ? '<span class="msg-edited">(edited)</span>' : ''}</div>
           ${mediaHtml}
@@ -179,7 +241,7 @@ function sendMessage(fileData = null) {
 
   const msgPayload = {
     name: currentUserData.name,
-    role: currentUserData.role,
+    roles: currentUserData.roles || (currentUserData.role ? [currentUserData.role] : ['Member']),
     text: text,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
   };
@@ -210,21 +272,24 @@ async function deleteMessage(msgId) {
   }
 }
 
-async function handleFileUpload(event) {
+function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const storageRef = storage.ref(`uploads/${Date.now()}_${file.name}`);
-  try {
-    const snapshot = await storageRef.put(file);
-    const downloadURL = await snapshot.ref.getDownloadURL();
-    
+  if (file.size > 10485760) { 
+    alert("File size too large for quick upload (max 10MB).");
+    return;
+  }
+
+  showLoading(true);
+  const reader = new FileReader();
+  reader.onload = function(e) {
     sendMessage({
-      url: downloadURL,
+      url: e.target.result,
       name: file.name,
       type: file.type
     });
-  } catch (error) {
-    alert("Upload failed: " + error.message);
-  }
+    showLoading(false);
+  };
+  reader.readAsDataURL(file);
 }
