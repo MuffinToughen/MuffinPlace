@@ -13,6 +13,12 @@
 </head>
 <body>
 
+  <!-- Notification Banner Prompt -->
+  <div id="notif-banner" style="display: none;">
+    <span><i class="fa-solid fa-bell"></i> Enable notifications to receive announcement alerts!</span>
+    <button onclick="requestNotificationPermission()">Enable</button>
+  </div>
+
   <!-- Loading Overlay Screen -->
   <div id="loading-screen" class="loading-screen" style="display: none;">
     <div class="spinner"></div>
@@ -90,7 +96,7 @@
     </div>
   </div>
 
-  <!-- Profile View Modal (Emails Hidden) -->
+  <!-- Profile View Modal -->
   <div id="profile-modal" class="modal" style="display: none;">
     <div class="modal-content">
       <div class="modal-header">
