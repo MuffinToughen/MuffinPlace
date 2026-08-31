@@ -20,9 +20,68 @@ let unsubscribeListener = null;
 let unsubscribeAnnouncements = null;
 let typingTimeout = null;
 
-// Deletion limit tracker
-let userDeletionCount = 0;
-const MAX_DELETIONS_PER_SESSION = 5;
+// Unread announcement counter
+let unreadAnnouncementsCount = 0;
+let initialAnnouncementLoad = true;
+
+// Synthesized Audio Context Sounds
+function playSound(type) {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === 'send') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.12);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.12);
+    } else if (type === 'announcement') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.1); // E5
+      osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.2); // G5
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.35);
+    }
+  } catch (e) {
+    console.error("Audio trigger failed:", e);
+  }
+}
+
+// Browser Notifications Handling
+function checkNotificationPermissions() {
+  if (!("Notification" in window)) return;
+
+  if (Notification.permission === "default") {
+    const banner = document.getElementById('notif-banner');
+    if (banner) banner.style.display = 'flex';
+  }
+}
+
+function requestNotificationPermission() {
+  if (!("Notification" in window)) return;
+  Notification.requestPermission().then(permission => {
+    const banner = document.getElementById('notif-banner');
+    if (banner) banner.style.display = 'none';
+  });
+}
+
+function sendDesktopNotification(title, body) {
+  if ("Notification" in window && Notification.permission === "granted") {
+    new Notification(title, {
+      body: body,
+      icon: "https://cdn-icons-png.flaticon.com/512/3602/3602145.png"
+    });
+  }
+}
 
 // Dynamic Progress Bar Handler
 function showLoading(show = true) {
@@ -77,13 +136,16 @@ function openLightbox(src) {
   }
 }
 
-// Announcement Floating Ring Setup
+// Floating Announcement Ring Setup with Notification Red Badge
 function setupAnnouncementUI() {
   if (document.getElementById('announcement-ring-btn')) return;
 
   const btn = document.createElement('button');
   btn.id = 'announcement-ring-btn';
-  btn.innerHTML = '<i class="fa-solid fa-bell"></i>';
+  btn.innerHTML = `
+    <i class="fa-solid fa-bell"></i>
+    <span id="announcement-badge">0</span>
+  `;
   btn.onclick = openAnnouncementsModal;
   document.body.appendChild(btn);
 
@@ -104,6 +166,9 @@ function setupAnnouncementUI() {
     </div>
   `;
   document.body.appendChild(modal);
+
+  // Background real-time listener for badge counter, sounds, & desktop notifications
+  listenAnnouncementsBackground();
 }
 
 function setupTypingUI() {
@@ -171,6 +236,8 @@ auth.onAuthStateChanged(async (user) => {
     
     setupAuditLogRoomUI();
     setupTypingUI();
+    checkNotificationPermissions();
+
     if (authScreen) authScreen.style.display = 'none';
     if (appScreen) appScreen.style.display = 'flex';
     loadRoomMessages('general');
@@ -258,7 +325,7 @@ async function saveTargetUserRoles() {
   loadRoomMessages(currentRoom);
 }
 
-// Profile modal without showing emails
+// Profile modal without emails
 async function openUserProfile(name) {
   showLoading(true);
   try {
@@ -340,16 +407,15 @@ function loadRoomMessages(room) {
         const div = document.createElement('div');
         div.className = 'message';
         
-        const isOwnerMsg = (currentUserData && msg.name === currentUserData.name);
+        const isOwner = (currentUserData && currentUserData.name === 'muffintoughen');
+        const isAuthor = (currentUserData && msg.name === currentUserData.name);
         
         let actionsHtml = '';
-        if (isOwnerMsg) {
-          actionsHtml = `
-            <div class="msg-actions">
-              <button class="action-btn" onclick="editMessage('${msgId}', '${escape(msg.text || '')}')" title="Edit"><i class="fa-solid fa-pen"></i></button>
-              <button class="action-btn" onclick="deleteMessage('${msgId}', '${escape(msg.text || '')}')" title="Delete"><i class="fa-solid fa-trash"></i></button>
-            </div>
-          `;
+        const editBtn = isAuthor ? `<button class="action-btn" onclick="editMessage('${msgId}', '${escape(msg.text || '')}')" title="Edit"><i class="fa-solid fa-pen"></i></button>` : '';
+        const deleteBtn = (isOwner || isAuthor) ? `<button class="action-btn" onclick="deleteMessage('${msgId}', '${escape(msg.text || '')}')" title="Delete"><i class="fa-solid fa-trash"></i></button>` : '';
+
+        if (editBtn || deleteBtn) {
+          actionsHtml = `<div class="msg-actions">${editBtn}${deleteBtn}</div>`;
         }
 
         let mediaHtml = '';
@@ -400,6 +466,7 @@ function sendMessage(fileData = null) {
   }
 
   db.collection('rooms').doc(currentRoom).collection('messages').add(msgPayload);
+  playSound('send');
   input.value = '';
   updateTypingStatus(false);
 }
@@ -431,17 +498,11 @@ async function editMessage(msgId, currentText) {
   }
 }
 
-// Restricted Deletion logic (limited deletions per session)
+// Muffintoughen can delete any message; other users can only delete their own
 async function deleteMessage(msgId, currentText) {
-  if (userDeletionCount >= MAX_DELETIONS_PER_SESSION) {
-    alert(`Deletion limit reached! You can only delete up to ${MAX_DELETIONS_PER_SESSION} messages per session.`);
-    return;
-  }
-
   if (confirm("Delete this message?")) {
     const oldText = unescape(currentText);
     await db.collection('rooms').doc(currentRoom).collection('messages').doc(msgId).delete();
-    userDeletionCount++;
     logActionToAudit("DELETE", oldText);
   }
 }
@@ -480,7 +541,7 @@ function loadAuditLogs() {
     });
 }
 
-// Announcements & Typing Status Setup
+// Announcements & Background Listeners
 function openAnnouncementsModal() {
   const modal = document.getElementById('announcement-modal');
   const inputContainer = document.getElementById('announcement-input-container');
@@ -491,6 +552,10 @@ function openAnnouncementsModal() {
   } else {
     if (inputContainer) inputContainer.style.display = 'none';
   }
+
+  // Reset red unread notification badge
+  unreadAnnouncementsCount = 0;
+  updateAnnouncementBadgeUI();
 
   modal.style.display = 'flex';
   startRealtimeAnnouncements();
@@ -519,6 +584,38 @@ async function postAnnouncement() {
     console.error("Announcement error:", e);
   }
   showLoading(false);
+}
+
+function listenAnnouncementsBackground() {
+  db.collection('announcements').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
+    if (initialAnnouncementLoad) {
+      initialAnnouncementLoad = false;
+      return;
+    }
+
+    snapshot.docChanges().forEach(change => {
+      if (change.type === 'added') {
+        const data = change.doc.data();
+        unreadAnnouncementsCount++;
+        updateAnnouncementBadgeUI();
+
+        playSound('announcement');
+        sendDesktopNotification("New Announcement!", `${data.author || 'Admin'}: ${data.text || ''}`);
+      }
+    });
+  });
+}
+
+function updateAnnouncementBadgeUI() {
+  const badge = document.getElementById('announcement-badge');
+  if (!badge) return;
+
+  if (unreadAnnouncementsCount > 0) {
+    badge.innerText = unreadAnnouncementsCount;
+    badge.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+  }
 }
 
 function startRealtimeAnnouncements() {
