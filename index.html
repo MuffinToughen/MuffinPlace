@@ -78,6 +78,7 @@
         <button class="nav-btn" data-room="scripts">
           <i class="fa-solid fa-scroll"></i><span>scripts</span>
         </button>
+        <div id="custom-channels"></div>
       </div>
 
       <div id="admin-section" class="nav-section" hidden>
@@ -87,6 +88,9 @@
         </button>
         <button id="audit-btn" class="nav-btn">
           <i class="fa-solid fa-shield-halved"></i><span>Audit Logs</span>
+        </button>
+        <button id="channel-manager-btn" class="nav-btn owner-only" hidden>
+          <i class="fa-solid fa-sliders"></i><span>Manage Channels</span>
         </button>
       </div>
 
@@ -131,18 +135,39 @@
       <div id="typing-indicator" class="typing-indicator" aria-live="polite"></div>
 
       <form id="message-form" class="input-area">
-        <label for="file-upload" class="attach-btn icon-btn" aria-label="Attach file">
+        <label id="file-upload-label" for="file-upload" class="attach-btn icon-btn" aria-label="Attach file">
           <i class="fa-solid fa-paperclip"></i>
         </label>
         <input type="file" id="file-upload" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
 
         <textarea id="message-input" rows="1" placeholder="Drop a message..." maxlength="4000"></textarea>
 
-        <button class="send-btn" type="submit" aria-label="Send message">
+        <button id="send-btn" class="send-btn" type="submit" aria-label="Send message">
           <i class="fa-solid fa-paper-plane"></i>
         </button>
       </form>
     </main>
+  </div>
+
+  <!-- CHANNEL MANAGEMENT -->
+  <div id="channel-modal" class="modal" hidden>
+    <div class="modal-content modal-large" role="dialog" aria-modal="true" aria-labelledby="channel-manager-title">
+      <div class="modal-header">
+        <h2 id="channel-manager-title">Manage Channels</h2>
+        <button class="close-modal icon-btn" type="button" data-close="channel-modal" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="channel-create">
+        <label for="new-channel-name">New channel name</label>
+        <input id="new-channel-name" type="text" maxlength="40" placeholder="e.g. art-feedback">
+        <label for="new-channel-roles">Who can post? (roles, comma-separated; leave blank for everyone)</label>
+        <input id="new-channel-roles" type="text" maxlength="200" placeholder="MEMBER, 3D ANIMATOR">
+        <button id="create-channel-btn" class="btn-primary" type="button">Create Channel</button>
+      </div>
+      <div id="channel-manager-list" class="channel-manager-list"></div>
+      <button id="clear-current-channel-btn" class="btn-secondary danger-action" type="button">Delete All Messages in This Channel</button>
+    </div>
   </div>
 
   <!-- ANNOUNCEMENTS -->
