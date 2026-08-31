@@ -127,6 +127,7 @@ function playUiSound(kind = "click") {
     const now = context.currentTime;
     const tones = {
       click: [520, 0.025],
+      send: [880, 0.075],
       success: [700, 0.06],
       danger: [180, 0.07]
     };
@@ -646,7 +647,7 @@ function createMessageElement(messageId, msg) {
   const message =
     document.createElement("article");
 
-  message.className = "message";
+  message.className = "message message-enter";
 
   const authorName =
     safeText(msg.name) || "Anonymous";
@@ -907,6 +908,8 @@ async function sendMessage() {
     autoResizeTextarea(input);
 
     updateTypingStatus(false);
+
+    playUiSound("send");
 
   } catch (error) {
 
@@ -3164,7 +3167,10 @@ document.addEventListener(
 
 
 document.addEventListener("click", event => {
-  if (event.target.closest("button")) {
+  if (
+    event.target.closest("button") &&
+    !event.target.closest("#send-btn")
+  ) {
     playUiSound("click");
   }
 });
