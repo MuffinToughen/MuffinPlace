@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f0f13">
+  <title>Muffins Place</title>
+
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+
+  <!-- Firebase v8 SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-storage.js"></script>
+</head>
+
+<body>
+  <div id="loading-screen" class="loading-screen" aria-live="polite">
+    <div class="spinner"></div>
+  </div>
+
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- AUTH -->
+  <section id="auth-screen" class="auth-container">
+    <div class="auth-box">
+      <div class="brand">
+        <i class="fa-solid fa-cookie-bite"></i>
+        <h1>Muffins Place</h1>
+      </div>
+
+      <p class="auth-subtitle">Your private creative workspace.</p>
+
+      <label class="sr-only" for="email-input">Email address</label>
+      <input type="email" id="email-input" placeholder="Email address" autocomplete="email">
+
+      <label class="sr-only" for="password-input">Password</label>
+      <input type="password" id="password-input" placeholder="Password" autocomplete="current-password">
+
+      <button id="sign-in-btn" class="btn-primary" type="button">
+        <i class="fa-solid fa-right-to-bracket"></i>
+        Sign In
+      </button>
+
+      <button id="register-btn" class="btn-secondary" type="button">
+        Create Account
+      </button>
+    </div>
+  </section>
+
+  <!-- APP -->
+  <div id="app-screen" class="app-container" hidden>
+    <aside id="sidebar" class="sidebar" aria-label="Channels">
+      <div class="sidebar-header">
+        <div class="brand brand-small">
+          <i class="fa-solid fa-cookie-bite"></i>
+          <h2>Muffins Place</h2>
+        </div>
+        <button id="close-sidebar-btn" class="icon-btn mobile-only" aria-label="Close sidebar">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="nav-section">
+        <span class="section-title">CHANNELS</span>
+
+        <button class="nav-btn active" data-room="general">
+          <i class="fa-solid fa-hashtag"></i><span>general</span>
+        </button>
+        <button class="nav-btn" data-room="3d-animation">
+          <i class="fa-solid fa-cube"></i><span>3d-animation</span>
+        </button>
+        <button class="nav-btn" data-room="voice-acting">
+          <i class="fa-solid fa-microphone"></i><span>voice-acting</span>
+        </button>
+        <button class="nav-btn" data-room="scripts">
+          <i class="fa-solid fa-scroll"></i><span>scripts</span>
+        </button>
+      </div>
+
+      <div id="admin-section" class="nav-section" hidden>
+        <span class="section-title">ADMIN</span>
+        <button id="roles-btn" class="nav-btn">
+          <i class="fa-solid fa-user-gear"></i><span>Manage Roles</span>
+        </button>
+        <button id="audit-btn" class="nav-btn">
+          <i class="fa-solid fa-shield-halved"></i><span>Audit Logs</span>
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <button id="profile-btn" class="user-card">
+          <span id="current-user-avatar" class="avatar">U</span>
+          <span class="user-card-info">
+            <strong id="current-user-name">User</strong>
+            <small id="current-user-role">Member</small>
+          </span>
+        </button>
+        <button id="logout-btn" class="icon-btn danger" aria-label="Log out">
+          <i class="fa-solid fa-power-off"></i>
+        </button>
+      </div>
+    </aside>
+
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+    <main class="chat-area">
+      <header class="chat-header">
+        <div class="header-left">
+          <button id="menu-btn" class="icon-btn mobile-only" aria-label="Open sidebar">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <h2 id="current-room-title">
+            <i class="fa-solid fa-hashtag"></i>
+            general
+          </h2>
+        </div>
+
+        <div class="header-actions">
+          <button id="announcement-btn" class="icon-btn notification-btn" aria-label="Open announcements">
+            <i class="fa-solid fa-bell"></i>
+            <span id="announcement-badge" class="notification-badge" hidden>0</span>
+          </button>
+        </div>
+      </header>
+
+      <section id="message-container" class="message-container" aria-live="polite"></section>
+
+      <div id="typing-indicator" class="typing-indicator" aria-live="polite"></div>
+
+      <form id="message-form" class="input-area">
+        <label for="file-upload" class="attach-btn icon-btn" aria-label="Attach file">
+          <i class="fa-solid fa-paperclip"></i>
+        </label>
+        <input type="file" id="file-upload" hidden>
+
+        <textarea id="message-input" rows="1" placeholder="Drop a message..." maxlength="4000"></textarea>
+
+        <button class="send-btn" type="submit" aria-label="Send message">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </form>
+    </main>
+  </div>
+
+  <!-- ANNOUNCEMENTS -->
+  <div id="announcement-modal" class="modal" hidden>
+    <div class="modal-content modal-large" role="dialog" aria-modal="true" aria-labelledby="announcement-title">
+      <div class="modal-header">
+        <h2 id="announcement-title"><i class="fa-solid fa-bullhorn"></i> Announcements</h2>
+        <button class="close-modal icon-btn" data-close="announcement-modal" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div id="announcement-compose" class="announcement-compose" hidden>
+        <textarea id="announcement-text" rows="3" maxlength="2000" placeholder="Write an announcement..."></textarea>
+        <button id="post-announcement-btn" class="btn-primary">Post Announcement</button>
+      </div>
+
+      <div id="announcement-list" class="announcement-list"></div>
+    </div>
+  </div>
+
+  <!-- ROLE MANAGEMENT -->
+  <div id="role-modal" class="modal" hidden>
+    <div class="modal-content" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2>Assign User Roles</h2>
+        <button class="close-modal icon-btn" data-close="role-modal" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <label for="user-select-dropdown">Select user</label>
+      <select id="user-select-dropdown"></select>
+
+      <label for="custom-role-input">Roles (comma-separated)</label>
+      <input id="custom-role-input" type="text" placeholder="OWNER, 3D ANIMATOR">
+
+      <button id="save-roles-btn" class="btn-primary">Save Roles</button>
+    </div>
+  </div>
+
+  <!-- PROFILE -->
+  <div id="profile-modal" class="modal" hidden>
+    <div class="modal-content" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2 id="profile-name">Profile</h2>
+        <button class="close-modal icon-btn" data-close="profile-modal" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div id="profile-roles-container" class="roles-badge-container"></div>
+    </div>
+  </div>
+
+  <!-- EDIT MESSAGE -->
+  <div id="edit-modal" class="modal" hidden>
+    <div class="modal-content" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2>Edit Message</h2>
+        <button class="close-modal icon-btn" data-close="edit-modal" aria-label="Close">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <textarea id="edit-message-input" rows="5" maxlength="4000"></textarea>
+
+      <div class="modal-actions">
+        <button id="cancel-edit-btn" class="btn-secondary">Cancel</button>
+        <button id="save-edit-btn" class="btn-primary">Save Changes</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMAGE LIGHTBOX -->
+  <div id="image-lightbox-modal" class="lightbox" hidden>
+    <button id="close-lightbox-btn" class="lightbox-close" aria-label="Close image">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+    <img id="lightbox-img" alt="Expanded attachment">
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
