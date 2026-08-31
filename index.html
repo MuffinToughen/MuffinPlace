@@ -1,115 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Splormb HQ | Team Workspace</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Splormb HQ | Team Workspace</title>
+  
+  <!-- Fonts & Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #0f111a;
+      --bg-panel: #181b29;
+      --bg-card: #212538;
+      --accent: #6c5ce7;
+      --text-main: #f1f2f6;
+      --text-muted: #a4b0be;
+      --border: #2f354a;
+    }
+
+    * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; }
+    body { background: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
+
+    #auth-screen {
+      position: fixed; inset: 0; background: rgba(15, 17, 26, 0.95); backdrop-filter: blur(10px);
+      display: flex; justify-content: center; align-items: center; z-index: 100;
+    }
+    .auth-card {
+      background: var(--bg-panel); border: 1px solid var(--border); padding: 35px;
+      border-radius: 16px; width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+    .auth-card h2 { margin-bottom: 6px; font-size: 1.8rem; background: linear-gradient(135deg, #a8c0ff, #3f2b96); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .auth-card p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
     
-    <!-- Fonts & Icons -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    input, select {
+      width: 100%; padding: 12px 14px; margin-bottom: 12px; background: var(--bg-card);
+      border: 1px solid var(--border); border-radius: 8px; color: #fff; outline: none; transition: 0.2s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    
+    .btn-primary {
+      width: 100%; padding: 12px; background: linear-gradient(135deg, var(--accent), #4834d4);
+      color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 5px;
+    }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
 
-    <!-- Firebase v8 SDK Libraries -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    .toggle-auth { color: var(--accent); font-size: 0.85rem; margin-top: 15px; cursor: pointer; display: inline-block; }
+    .toggle-auth:hover { text-decoration: underline; }
 
-    <style>
-        :root {
-          --bg-dark: #0f111a;
-          --bg-panel: #181b29;
-          --bg-card: #212538;
-          --accent: #6c5ce7;
-          --text-main: #f1f2f6;
-          --text-muted: #a4b0be;
-          --border: #2f354a;
-        }
+    #app-screen { display: none; width: 100vw; height: 100vh; }
+    
+    .sidebar { width: 280px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+    .brand { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 1.2rem; }
+    .brand-title { display: flex; align-items: center; gap: 10px; }
+    .brand i { color: var(--accent); font-size: 1.4rem; }
+    .logout-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; width: auto; padding: 4px 8px; }
+    .logout-btn:hover { color: #ff4757; }
+    
+    .section-title { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; padding: 20px 20px 10px; font-weight: 700; }
+    .nav-list { list-style: none; padding: 0 10px; }
+    .nav-btn {
+      width: 100%; padding: 10px 14px; background: transparent; border: none; border-radius: 6px;
+      color: var(--text-muted); display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 0.95rem; transition: 0.2s; margin-bottom: 2px;
+    }
+    .nav-btn:hover { background: var(--bg-card); color: #fff; }
+    .nav-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
 
-        * { box-sizing: border-box; font-family: 'Segoe UI', system-ui, sans-serif; margin: 0; padding: 0; }
-        body { background: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
+    .main-content { flex: 1; display: flex; flex-direction: column; }
+    .chat-header {
+      padding: 16px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .chat-header h4 { font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
 
-        /* Login Screen */
-        #auth-screen {
-          position: fixed; inset: 0; background: rgba(15, 17, 26, 0.95); backdrop-filter: blur(10px);
-          display: flex; justify-content: center; align-items: center; z-index: 100;
-        }
-        .auth-card {
-          background: var(--bg-panel); border: 1px solid var(--border); padding: 35px;
-          border-radius: 16px; width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-        }
-        .auth-card h2 { margin-bottom: 6px; font-size: 1.8rem; background: linear-gradient(135deg, #a8c0ff, #3f2b96); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .auth-card p { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px; }
-        
-        input, select {
-          width: 100%; padding: 12px 14px; margin-bottom: 12px; background: var(--bg-card);
-          border: 1px solid var(--border); border-radius: 8px; color: #fff; outline: none; transition: 0.2s;
-        }
-        input:focus, select:focus { border-color: var(--accent); }
-        
-        .btn-primary {
-          width: 100%; padding: 12px; background: linear-gradient(135deg, var(--accent), #4834d4);
-          color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; margin-top: 5px;
-        }
-        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .messages { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
+    .message {
+      background: var(--bg-panel); border: 1px solid var(--border); padding: 14px 16px;
+      border-radius: 12px; max-width: 75%; width: fit-content; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    
+    .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+    .msg-author { font-weight: 700; font-size: 0.9rem; color: #fff; }
+    .role-badge {
+      font-size: 0.65rem; padding: 2px 8px; border-radius: 12px; font-weight: 700; text-transform: uppercase;
+    }
+    .role-3d-animator { background: rgba(255, 71, 87, 0.2); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.3); }
+    .role-voice-actor { background: rgba(46, 213, 115, 0.2); color: #2ed573; border: 1px solid rgba(46, 213, 115, 0.3); }
+    .role-scriptwriter { background: rgba(255, 165, 2, 0.2); color: #ffa502; border: 1px solid rgba(255, 165, 2, 0.3); }
+    .role-editor { background: rgba(30, 144, 255, 0.2); color: #1e90ff; border: 1px solid rgba(30, 144, 255, 0.3); }
 
-        .toggle-auth { color: var(--accent); font-size: 0.85rem; margin-top: 15px; cursor: pointer; display: inline-block; }
-        .toggle-auth:hover { text-decoration: underline; }
+    .msg-text { color: var(--text-main); line-height: 1.4; font-size: 0.95rem; word-break: break-word; }
+    .msg-link { color: #70a1ff; text-decoration: underline; }
 
-        /* Main App Layout */
-        #app-screen { display: none; width: 100vw; height: 100vh; }
-        
-        /* Sidebar */
-        .sidebar { width: 280px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-        .brand { padding: 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 1.2rem; }
-        .brand-title { display: flex; align-items: center; gap: 10px; }
-        .brand i { color: var(--accent); font-size: 1.4rem; }
-        .logout-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1rem; width: auto; padding: 4px 8px; }
-        .logout-btn:hover { color: #ff4757; }
-        
-        .section-title { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; padding: 20px 20px 10px; font-weight: 700; }
-        .nav-list { list-style: none; padding: 0 10px; }
-        .nav-btn {
-          width: 100%; padding: 10px 14px; background: transparent; border: none; border-radius: 6px;
-          color: var(--text-muted); display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 0.95rem; transition: 0.2s; margin-bottom: 2px;
-        }
-        .nav-btn:hover { background: var(--bg-card); color: #fff; }
-        .nav-btn.active { background: var(--accent); color: #fff; font-weight: 600; }
-
-        /* Main Content Area */
-        .main-content { flex: 1; display: flex; flex-direction: column; }
-        .chat-header {
-          padding: 16px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
-          display: flex; justify-content: space-between; align-items: center;
-        }
-        .chat-header h4 { font-size: 1.1rem; display: flex; align-items: center; gap: 8px; }
-
-        /* Messages Stream */
-        .messages { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-        .message {
-          background: var(--bg-panel); border: 1px solid var(--border); padding: 14px 16px;
-          border-radius: 12px; max-width: 75%; width: fit-content; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-          animation: fadeIn 0.2s ease-in-out;
-        }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        
-        .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-        .msg-author { font-weight: 700; font-size: 0.9rem; color: #fff; }
-        .role-badge {
-          font-size: 0.65rem; padding: 2px 8px; border-radius: 12px; font-weight: 700; text-transform: uppercase;
-        }
-        .role-3d-animator { background: rgba(255, 71, 87, 0.2); color: #ff4757; border: 1px solid rgba(255, 71, 87, 0.3); }
-        .role-voice-actor { background: rgba(46, 213, 115, 0.2); color: #2ed573; border: 1px solid rgba(46, 213, 115, 0.3); }
-        .role-scriptwriter { background: rgba(255, 165, 2, 0.2); color: #ffa502; border: 1px solid rgba(255, 165, 2, 0.3); }
-        .role-editor { background: rgba(30, 144, 255, 0.2); color: #1e90ff; border: 1px solid rgba(30, 144, 255, 0.3); }
-
-        .msg-text { color: var(--text-main); line-height: 1.4; font-size: 0.95rem; word-break: break-word; }
-        .msg-link { color: #70a1ff; text-decoration: underline; }
-
-        /* Input Dock */
-        .input-dock { padding: 16px 24px; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; gap: 12px; }
-        .input-dock input { margin: 0; background: var(--bg-card); }
-        .input-dock button { width: auto; padding: 0 24px; display: flex; align-items: center; gap: 8px; }
-    </style>
+    .input-dock { padding: 16px 24px; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; gap: 12px; }
+    .input-dock input { margin: 0; background: var(--bg-card); }
+    .input-dock button { width: auto; padding: 0 24px; display: flex; align-items: center; gap: 8px; }
+  </style>
 </head>
 <body>
 
