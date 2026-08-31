@@ -4,225 +4,106 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Muffins Place</title>
-  
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-
-  <style>
-    :root {
-      --bg-dark: #0a0b10;
-      --bg-panel: #12141d;
-      --bg-card: #1a1d2b;
-      --accent: #a55eea;
-      --accent-glow: rgba(165, 94, 234, 0.4);
-      --accent-pink: #ff007f;
-      --text-main: #f1f2f6;
-      --text-muted: #8890a6;
-      --border: #26293b;
-    }
-
-    * { box-sizing: border-box; font-family: 'Outfit', system-ui, sans-serif; margin: 0; padding: 0; }
-    body { background: var(--bg-dark); color: var(--text-main); height: 100vh; display: flex; overflow: hidden; }
-
-    /* LOADING SCREEN */
-    #loading-screen {
-      display: none; position: fixed; inset: 0; background: rgba(10, 11, 16, 0.85); backdrop-filter: blur(8px);
-      z-index: 3000; justify-content: center; align-items: center; flex-direction: column; gap: 16px;
-    }
-    .spinner {
-      width: 50px; height: 50px; border: 5px solid var(--bg-card); border-top: 5px solid var(--accent-pink);
-      border-radius: 50%; animation: spin 0.8s linear infinite; box-shadow: 0 0 15px var(--accent-glow);
-    }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-    #auth-screen {
-      position: fixed; inset: 0; background: rgba(10, 11, 16, 0.95); backdrop-filter: blur(12px);
-      display: flex; justify-content: center; align-items: center; z-index: 1000;
-    }
-    .auth-card {
-      background: var(--bg-panel); border: 1px solid var(--accent); padding: 40px;
-      border-radius: 20px; width: 380px; text-align: center; box-shadow: 0 0 30px var(--accent-glow);
-    }
-    .auth-card h2 { 
-      margin-bottom: 6px; font-size: 2.2rem; font-weight: 800;
-      background: linear-gradient(135deg, var(--accent-pink), var(--accent)); 
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent; 
-    }
-    .auth-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 24px; }
-    
-    input, select {
-      width: 100%; padding: 12px 16px; margin-bottom: 14px; background: var(--bg-card);
-      border: 1px solid var(--border); border-radius: 10px; color: #fff; outline: none; transition: 0.3s;
-    }
-    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
-    
-    .btn-primary {
-      width: 100%; padding: 12px; background: linear-gradient(135deg, var(--accent-pink), var(--accent));
-      color: white; border: none; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s;
-      box-shadow: 0 4px 15px var(--accent-glow);
-    }
-    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px var(--accent-glow); }
-
-    #app-screen { display: none; width: 100vw; height: 100vh; }
-    
-    .sidebar { width: 280px; background: var(--bg-panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-    .brand { padding: 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-    .brand-title { display: flex; align-items: center; gap: 12px; font-weight: 800; font-size: 1.4rem; background: linear-gradient(135deg, #fff, var(--accent)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .brand i { color: var(--accent-pink); font-size: 1.5rem; }
-    .logout-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; }
-    .logout-btn:hover { color: var(--accent-pink); }
-    
-    .section-title { font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1.5px; padding: 20px 20px 10px; font-weight: 800; }
-    .nav-list { list-style: none; padding: 0 12px; }
-    .nav-btn {
-      width: 100%; padding: 12px 16px; background: transparent; border: none; border-radius: 10px;
-      color: var(--text-muted); display: flex; align-items: center; gap: 12px; cursor: pointer; font-size: 0.95rem; font-weight: 600; transition: 0.2s; margin-bottom: 4px;
-    }
-    .nav-btn:hover { background: var(--bg-card); color: #fff; }
-    .nav-btn.active { background: linear-gradient(135deg, var(--accent-pink), var(--accent)); color: #fff; box-shadow: 0 4px 15px var(--accent-glow); }
-
-    .main-content { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); }
-    .chat-header {
-      padding: 18px 24px; background: var(--bg-panel); border-bottom: 1px solid var(--border);
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .chat-header h4 { font-size: 1.2rem; font-weight: 700; display: flex; align-items: center; gap: 10px; color: #fff; }
-
-    .messages { flex: 1; padding: 24px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-    .message {
-      position: relative; background: var(--bg-panel); border: 1px solid var(--border); padding: 14px 18px;
-      border-radius: 14px; max-width: 75%; width: fit-content; box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-      animation: fadeIn 0.2s ease-in-out;
-    }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-    
-    .msg-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; flex-wrap: wrap; }
-    .msg-author { font-weight: 700; font-size: 0.95rem; color: #fff; cursor: pointer; transition: 0.2s; }
-    .msg-author:hover { color: var(--accent-pink); text-decoration: underline; }
-    
-    .role-badge {
-      font-size: 0.65rem; padding: 2px 8px; border-radius: 20px; font-weight: 800; text-transform: uppercase;
-      background: rgba(165, 94, 234, 0.2); color: var(--accent); border: 1px solid var(--accent);
-      box-shadow: 0 0 8px var(--accent-glow);
-    }
-
-    .msg-actions {
-      display: none; position: absolute; top: -12px; right: 12px; background: var(--bg-card);
-      border: 1px solid var(--border); border-radius: 8px; padding: 2px 6px; gap: 8px; z-index: 10;
-    }
-    .message:hover .msg-actions { display: flex; }
-    .action-btn { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.85rem; padding: 4px; }
-    .action-btn:hover { color: var(--accent-pink); }
-
-    .msg-text { color: var(--text-main); line-height: 1.5; font-size: 0.95rem; word-break: break-word; }
-    .msg-edited { font-size: 0.7rem; color: var(--text-muted); margin-left: 6px; }
-    .msg-link { color: var(--accent-pink); text-decoration: underline; }
-    .msg-image { max-width: 100%; max-height: 300px; border-radius: 10px; margin-top: 8px; display: block; border: 1px solid var(--border); }
-    .msg-file-btn { display: inline-flex; align-items: center; gap: 8px; background: var(--bg-card); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; color: var(--accent-pink); text-decoration: none; margin-top: 8px; font-size: 0.85rem; font-weight: 600; }
-
-    .input-dock { padding: 20px 24px; background: var(--bg-panel); border-top: 1px solid var(--border); display: flex; gap: 12px; align-items: center; }
-    .input-dock input[type="text"] { margin: 0; background: var(--bg-card); border-radius: 12px; flex: 1; }
-    .input-dock button { width: auto; padding: 0 24px; height: 45px; border-radius: 12px; display: flex; align-items: center; gap: 8px; }
-    .upload-btn { background: var(--bg-card); border: 1px solid var(--border); color: var(--text-muted); width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.1rem; }
-    .upload-btn:hover { color: var(--accent-pink); border-color: var(--accent-pink); }
-
-    .modal {
-      display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px);
-      justify-content: center; align-items: center; z-index: 2000;
-    }
-    .modal-content {
-      background: var(--bg-panel); border: 1px solid var(--accent); padding: 30px; border-radius: 16px; width: 400px;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Firebase App & Database SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
 </head>
 <body>
 
-  <div id="loading-screen">
+  <!-- Loading Overlay Screen -->
+  <div id="loading-screen" class="loading-screen" style="display: none;">
     <div class="spinner"></div>
-    <p style="color: var(--text-muted); font-weight: 600;">Loading Muffins Place...</p>
   </div>
 
-  <div id="auth-screen">
-    <div class="auth-card">
-      <h2>Muffins Place</h2>
-      <p>Enter credentials to access headquarters.</p>
-      
-      <input type="email" id="email-input" placeholder="Email Address">
-      <input type="password" id="password-input" placeholder="Password">
-
-      <button class="btn-primary" onclick="handleAuth()"><i class="fa-solid fa-bolt"></i> Login</button>
+  <!-- Authentication Screen -->
+  <div id="auth-screen" class="auth-container">
+    <div class="auth-box">
+      <h2><i class="fa-solid fa-cookie-bite"></i> Muffins Place</h2>
+      <input type="email" id="email-input" placeholder="Email address" required>
+      <input type="password" id="password-input" placeholder="Password" required>
+      <button onclick="handleAuth()" class="btn-primary">Sign In / Register</button>
     </div>
   </div>
 
-  <div id="app-screen">
-    <div class="sidebar">
-      <div class="brand">
-        <div class="brand-title"><i class="fa-solid fa-cookie-bite"></i> Muffins Place</div>
-        <button class="logout-btn" onclick="logout()" title="Sign Out"><i class="fa-solid fa-power-off"></i></button>
+  <!-- Main Application Screen -->
+  <div id="app-screen" class="app-container" style="display: none;">
+    
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-header">
+        <h3><i class="fa-solid fa-cookie-bite"></i> Muffins Place</h3>
+        <button onclick="logout()" class="icon-btn-danger" title="Logout"><i class="fa-solid fa-power-off"></i></button>
       </div>
-      
-      <div class="section-title">Channels</div>
-      <div class="nav-list">
+
+      <div class="nav-section">
+        <span class="section-title">CHANNELS</span>
         <button class="nav-btn active" onclick="switchRoom('general')"><i class="fa-solid fa-hashtag"></i> general</button>
-        <button class="nav-btn" onclick="switchRoom('animation')"><i class="fa-solid fa-cube"></i> 3d-animation</button>
+        <button class="nav-btn" onclick="switchRoom('3d-animation')"><i class="fa-solid fa-cube"></i> 3d-animation</button>
         <button class="nav-btn" onclick="switchRoom('voice-acting')"><i class="fa-solid fa-microphone"></i> voice-acting</button>
         <button class="nav-btn" onclick="switchRoom('scripts')"><i class="fa-solid fa-scroll"></i> scripts</button>
       </div>
 
-      <div class="section-title">Admin Management</div>
-      <div class="nav-list">
-        <button class="nav-btn" id="role-btn" onclick="openRoleModal()"><i class="fa-solid fa-user-gear"></i> Manage Roles</button>
+      <div class="nav-section">
+        <span class="section-title">ADMIN MANAGEMENT</span>
+        <button id="role-btn" class="nav-btn" onclick="openRoleModal()" style="display: none;"><i class="fa-solid fa-user-gear"></i> Manage Roles</button>
       </div>
-    </div>
+    </nav>
 
-    <div class="main-content">
+    <!-- Main Chat View -->
+    <main class="chat-area">
       <div class="chat-header">
-        <h4 id="current-room-title"><i class="fa-solid fa-hashtag"></i> general</h4>
+        <h3 id="current-room-title"><i class="fa-solid fa-hashtag"></i> general</h3>
       </div>
-      
-      <div class="messages" id="message-container"></div>
-      
-      <div class="input-dock">
-        <label class="upload-btn" title="Upload File or Image">
-          <i class="fa-solid fa-paperclip"></i>
-          <input type="file" id="file-input" style="display: none;" onchange="handleFileUpload(event)">
-        </label>
-        <input type="text" id="message-input" placeholder="Drop a message..." onkeydown="if(event.key === 'Enter') sendMessage()">
-        <button class="btn-primary" onclick="sendMessage()"><i class="fa-solid fa-paper-plane"></i> Send</button>
+
+      <div id="message-container" class="message-container"></div>
+
+      <!-- Input Area -->
+      <div class="input-area">
+        <label for="file-upload" class="attach-btn"><i class="fa-solid fa-paperclip"></i></label>
+        <input type="file" id="file-upload" style="display: none;" onchange="handleFileUpload(event)">
+        
+        <input type="text" id="message-input" placeholder="Drop a message..." onkeydown="if(event.key==='Enter') sendMessage()">
+        <button onclick="sendMessage()" class="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
       </div>
-    </div>
+    </main>
   </div>
 
-  <div id="role-modal" class="modal">
+  <!-- Role Management Modal -->
+  <div id="role-modal" class="modal" style="display: none;">
     <div class="modal-content">
-      <h3 style="margin-bottom: 14px; font-weight: 800; color: #fff;">Assign Roles to User</h3>
-      <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Select User:</label>
-      <select id="user-select-dropdown"></select>
-      
-      <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Roles (separate multiples with commas):</label>
-      <input type="text" id="custom-role-input" placeholder="e.g. OWNER, 3D ANIMATOR, EDITOR">
-      
-      <button class="btn-primary" onclick="saveTargetUserRoles()">Save Roles</button>
-      <button class="btn-primary" onclick="closeRoleModal()" style="background: transparent; border: 1px solid var(--border); margin-top: 8px;">Cancel</button>
+      <div class="modal-header">
+        <h3>Assign User Roles</h3>
+        <button onclick="closeRoleModal()" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label>Select User:</label>
+        <select id="user-select-dropdown" class="modal-select"></select>
+
+        <label style="margin-top: 10px; display: block;">Roles (comma-separated):</label>
+        <input type="text" id="custom-role-input" placeholder="e.g. OWNER, 3D ANIMATOR" class="modal-input">
+
+        <button onclick="saveTargetUserRoles()" class="btn-primary" style="margin-top: 15px;">Save Roles</button>
+      </div>
     </div>
   </div>
 
-  <div id="profile-modal" class="modal">
-    <div class="modal-content" style="text-align: center;">
-      <div style="font-size: 3rem; color: var(--accent-pink); margin-bottom: 8px;"><i class="fa-solid fa-circle-user"></i></div>
-      <h3 id="profile-name" style="font-weight: 800; color: #fff; font-size: 1.4rem;">-</h3>
-      <p id="profile-email" style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 16px;">-</p>
-      
-      <div style="font-size: 0.75rem; text-transform: uppercase; color: var(--text-muted); letter-spacing: 1px; margin-bottom: 8px; font-weight: 800;">Assigned Roles</div>
-      <div id="profile-roles-container" style="display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; margin-bottom: 20px;"></div>
-      
-      <button class="btn-primary" onclick="closeProfileModal()">Close Profile</button>
+  <!-- Profile View Modal -->
+  <div id="profile-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="profile-name">User Profile</h3>
+        <button onclick="closeProfileModal()" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="profile-email" class="profile-email-text"></p>
+        <div id="profile-roles-container" class="roles-badge-container"></div>
+      </div>
     </div>
   </div>
 
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
