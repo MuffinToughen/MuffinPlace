@@ -20,6 +20,10 @@ let unsubscribeListener = null;
 let unsubscribeAnnouncements = null;
 let typingTimeout = null;
 
+// Deletion limit tracker
+let userDeletionCount = 0;
+const MAX_DELETIONS_PER_SESSION = 5;
+
 // Dynamic Progress Bar Handler
 function showLoading(show = true) {
   let topBar = document.getElementById('top-progress-bar');
@@ -107,7 +111,7 @@ function setupTypingUI() {
   if (container && !document.getElementById('typing-indicator-bar')) {
     const typingBar = document.createElement('div');
     typingBar.id = 'typing-indicator-bar';
-    typingBar.style.cssText = 'font-size:12px;opacity:0.75;padding:4px 16px;font-style:italic;color:#a855f7;min-height:18px;';
+    typingBar.style.cssText = 'font-size:12px;opacity:0.85;padding:6px 16px;font-style:italic;color:#a855f7;min-height:20px;';
     container.parentNode.insertBefore(typingBar, container.nextSibling);
   }
 }
@@ -254,6 +258,7 @@ async function saveTargetUserRoles() {
   loadRoomMessages(currentRoom);
 }
 
+// Profile modal without showing emails
 async function openUserProfile(name) {
   showLoading(true);
   try {
@@ -262,14 +267,12 @@ async function openUserProfile(name) {
     if (!usersSnap.empty) {
       const userData = usersSnap.docs[0].data();
       const nameEl = document.getElementById('profile-name');
-      const emailEl = document.getElementById('profile-email');
       const container = document.getElementById('profile-roles-container');
       
       if (nameEl) {
         nameEl.innerText = userData.name || name;
         nameEl.style.color = getUserColor(userData.name || name);
       }
-      if (emailEl) emailEl.innerText = userData.email || 'No email registered';
       
       if (container) {
         container.innerHTML = '';
@@ -361,7 +364,6 @@ function loadRoomMessages(room) {
         const authorName = msg.name || 'Anonymous';
         const nameColor = getUserColor(authorName);
 
-        // Render header with inline color styling & without main-chat role badges
         div.innerHTML = `
           ${actionsHtml}
           <div class="msg-header">
@@ -429,10 +431,17 @@ async function editMessage(msgId, currentText) {
   }
 }
 
+// Restricted Deletion logic (limited deletions per session)
 async function deleteMessage(msgId, currentText) {
+  if (userDeletionCount >= MAX_DELETIONS_PER_SESSION) {
+    alert(`Deletion limit reached! You can only delete up to ${MAX_DELETIONS_PER_SESSION} messages per session.`);
+    return;
+  }
+
   if (confirm("Delete this message?")) {
     const oldText = unescape(currentText);
     await db.collection('rooms').doc(currentRoom).collection('messages').doc(msgId).delete();
+    userDeletionCount++;
     logActionToAudit("DELETE", oldText);
   }
 }
@@ -471,7 +480,7 @@ function loadAuditLogs() {
     });
 }
 
-// Realtime Announcements Listener
+// Announcements & Typing Status Setup
 function openAnnouncementsModal() {
   const modal = document.getElementById('announcement-modal');
   const inputContainer = document.getElementById('announcement-input-container');
@@ -537,12 +546,11 @@ function startRealtimeAnnouncements() {
   });
 }
 
-// File & Image Upload Progress Indicator
 function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const maxSizeBytes = 10 * 1024 * 1024; // 10 MB strict limit
+  const maxSizeBytes = 10 * 1024 * 1024;
   if (file.size > maxSizeBytes) { 
     alert("File is too large! Maximum allowed size is 10 MB.");
     event.target.value = '';
@@ -577,7 +585,6 @@ function handleFileUpload(event) {
   showLoading(true);
 
   const reader = new FileReader();
-  
   reader.onprogress = function (e) {
     if (e.lengthComputable) {
       const percent = Math.round((e.loaded / e.total) * 100);
