@@ -17,20 +17,69 @@ const auth = firebase.auth();
 let currentUserData = null;
 let currentRoom = 'general';
 let unsubscribeListener = null;
+let unsubscribeAnnouncements = null;
+let typingTimeout = null;
 
+// Global Animated Progress Bar Function
 function showLoading(show = true) {
+  let topBar = document.getElementById('top-progress-bar');
+  if (!topBar) {
+    topBar = document.createElement('div');
+    topBar.id = 'top-progress-bar';
+    topBar.style.cssText = 'position:fixed;top:0;left:0;height:4px;width:0%;background:linear-gradient(90deg, #7289da, #f47fff);z-index:99999;transition:width 0.3s ease;';
+    document.body.appendChild(topBar);
+  }
+
   const loader = document.getElementById('loading-screen');
   if (loader) loader.style.display = show ? 'flex' : 'none';
+
+  if (show) {
+    topBar.style.width = '40%';
+    setTimeout(() => { if (topBar.style.width === '40%') topBar.style.width = '80%'; }, 200);
+  } else {
+    topBar.style.width = '100%';
+    setTimeout(() => { topBar.style.width = '0%'; }, 300);
+  }
 }
 
-// Ensure Announcement floating ring button exists in DOM
+function getUserColor(name) {
+  if (!name) return '#ffffff';
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 75%, 65%)`;
+}
+
+// Lightbox modal for image previews
+function setupImageLightboxUI() {
+  if (document.getElementById('image-lightbox-modal')) return;
+  const modal = document.createElement('div');
+  modal.id = 'image-lightbox-modal';
+  modal.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:100000;align-items:center;justify-content:center;cursor:pointer;';
+  modal.onclick = () => modal.style.display = 'none';
+  modal.innerHTML = `<img id="lightbox-img" style="max-width:90%;max-height:90%;border-radius:8px;box-shadow:0 0 20px rgba(0,0,0,0.8);" />`;
+  document.body.appendChild(modal);
+}
+
+function openLightbox(src) {
+  const modal = document.getElementById('image-lightbox-modal');
+  const img = document.getElementById('lightbox-img');
+  if (modal && img) {
+    img.src = src;
+    modal.style.display = 'flex';
+  }
+}
+
+// Announcement floating ring button (bottom-left)
 function setupAnnouncementUI() {
   if (document.getElementById('announcement-ring-btn')) return;
 
   const btn = document.createElement('button');
   btn.id = 'announcement-ring-btn';
   btn.innerHTML = '<i class="fa-solid fa-bell"></i>';
-  btn.style.cssText = 'position:fixed;bottom:20px;right:20px;width:50px;height:50px;border-radius:50%;background:#7289da;color:#fff;border:none;cursor:pointer;font-size:20px;box-shadow:0 4px 10px rgba(0,0,0,0.3);z-index:9999;display:flex;align-items:center;justify-content:center;';
+  btn.style.cssText = 'position:fixed;bottom:20px;left:20px;width:50px;height:50px;border-radius:50%;background:#7289da;color:#fff;border:none;cursor:pointer;font-size:20px;box-shadow:0 4px 10px rgba(0,0,0,0.3);z-index:9999;display:flex;align-items:center;justify-content:center;';
   btn.onclick = openAnnouncementsModal;
   document.body.appendChild(btn);
 
@@ -53,7 +102,16 @@ function setupAnnouncementUI() {
   document.body.appendChild(modal);
 }
 
-// Setup Admin Log Room Button
+function setupTypingUI() {
+  const container = document.getElementById('message-container');
+  if (container && !document.getElementById('typing-indicator-bar')) {
+    const typingBar = document.createElement('div');
+    typingBar.id = 'typing-indicator-bar';
+    typingBar.style.cssText = 'font-size:12px;opacity:0.7;padding:4px 12px;font-style:italic;color:#7289da;min-height:18px;';
+    container.parentNode.insertBefore(typingBar, container.nextSibling);
+  }
+}
+
 function setupAuditLogRoomUI() {
   const isOwner = currentUserData && currentUserData.name === 'muffintoughen';
   let navBtn = document.getElementById('audit-log-nav-btn');
@@ -75,10 +133,11 @@ function setupAuditLogRoomUI() {
   }
 }
 
-// Authentication State Observer
+// Authentication Observer
 auth.onAuthStateChanged(async (user) => {
   showLoading(true);
   setupAnnouncementUI();
+  setupImageLightboxUI();
 
   const authScreen = document.getElementById('auth-screen');
   const appScreen = document.getElementById('app-screen');
@@ -107,9 +166,12 @@ auth.onAuthStateChanged(async (user) => {
     }
     
     setupAuditLogRoomUI();
+    setupTypingUI();
     if (authScreen) authScreen.style.display = 'none';
     if (appScreen) appScreen.style.display = 'flex';
     loadRoomMessages('general');
+    listenTypingStatus();
+    attachTypingEvents();
   } else {
     currentUserData = null;
     if (authScreen) authScreen.style.display = 'flex';
@@ -118,23 +180,14 @@ auth.onAuthStateChanged(async (user) => {
   showLoading(false);
 });
 
-// Explicit Handle Login Function
 async function handleAuth() {
   const emailInput = document.getElementById('email-input');
   const passwordInput = document.getElementById('password-input');
-
-  if (!emailInput || !passwordInput) {
-    alert("UI elements missing. Refresh page.");
-    return;
-  }
+  if (!emailInput || !passwordInput) return alert("UI elements missing.");
 
   const email = emailInput.value.trim();
   const password = passwordInput.value;
-
-  if (!email || !password) {
-    alert("Please enter both email and password.");
-    return;
-  }
+  if (!email || !password) return alert("Please enter both email and password.");
 
   showLoading(true);
   try {
@@ -147,16 +200,15 @@ async function handleAuth() {
 
 function logout() {
   if (unsubscribeListener) unsubscribeListener();
+  if (unsubscribeAnnouncements) unsubscribeAnnouncements();
   auth.signOut();
 }
 
-// Admin Role Panel
 async function openRoleModal() {
   if (currentUserData && currentUserData.name === 'muffintoughen') {
     showLoading(true);
     const dropdown = document.getElementById('user-select-dropdown');
     if (!dropdown) return;
-    
     dropdown.innerHTML = '';
     
     try {
@@ -190,7 +242,6 @@ async function saveTargetUserRoles() {
 
   const targetUid = dropdown.value;
   const rawRoles = input.value.trim();
-  
   if (!targetUid || !rawRoles) return;
   
   const rolesArray = rawRoles.split(',').map(r => r.trim()).filter(r => r.length > 0);
@@ -203,7 +254,6 @@ async function saveTargetUserRoles() {
   loadRoomMessages(currentRoom);
 }
 
-// Profile Card
 async function openUserProfile(name) {
   showLoading(true);
   try {
@@ -215,7 +265,10 @@ async function openUserProfile(name) {
       const emailEl = document.getElementById('profile-email');
       const container = document.getElementById('profile-roles-container');
       
-      if (nameEl) nameEl.innerText = userData.name || name;
+      if (nameEl) {
+        nameEl.innerText = userData.name || name;
+        nameEl.style.color = getUserColor(userData.name || name);
+      }
       if (emailEl) emailEl.innerText = userData.email || 'No email registered';
       
       if (container) {
@@ -259,6 +312,7 @@ function switchRoom(roomName) {
     loadAuditLogs();
   } else {
     loadRoomMessages(roomName);
+    listenTypingStatus();
   }
 }
 
@@ -295,26 +349,22 @@ function loadRoomMessages(room) {
           `;
         }
 
-        let rolesHtml = '';
-        const rolesList = msg.roles || (msg.role ? [msg.role] : ['Member']);
-        rolesList.forEach(r => {
-          rolesHtml += `<span class="role-badge">${r}</span>`;
-        });
-
         let mediaHtml = '';
         if (msg.fileUrl) {
           if (msg.fileType && msg.fileType.startsWith('image/')) {
-            mediaHtml = `<img src="${msg.fileUrl}" class="msg-image" />`;
+            mediaHtml = `<img src="${msg.fileUrl}" class="msg-image" style="cursor:pointer;" onclick="openLightbox('${msg.fileUrl}')" />`;
           } else {
             mediaHtml = `<a href="${msg.fileUrl}" download="${msg.fileName || 'Attachment'}" class="msg-file-btn" target="_blank"><i class="fa-solid fa-file-arrow-down"></i> ${msg.fileName || 'Attachment'}</a>`;
           }
         }
 
+        const authorName = msg.name || 'Anonymous';
+        const userColor = getUserColor(authorName);
+
         div.innerHTML = `
           ${actionsHtml}
           <div class="msg-header">
-            <span class="msg-author" onclick="openUserProfile('${msg.name}')">${msg.name || 'Anonymous'}</span>
-            ${rolesHtml}
+            <span class="msg-author" style="color: ${userColor}; font-weight: bold; cursor: pointer;" onclick="openUserProfile('${authorName}')">${authorName}</span>
           </div>
           <div class="msg-text">${formatText(msg.text || '')}${msg.edited ? '<span class="msg-edited">(edited)</span>' : ''}</div>
           ${mediaHtml}
@@ -348,9 +398,9 @@ function sendMessage(fileData = null) {
 
   db.collection('rooms').doc(currentRoom).collection('messages').add(msgPayload);
   input.value = '';
+  updateTypingStatus(false);
 }
 
-// Log actions (edits & deletions) to private Audit Log collection
 async function logActionToAudit(actionType, originalText, newText = '') {
   try {
     await db.collection('audit_logs').add({
@@ -386,7 +436,6 @@ async function deleteMessage(msgId, currentText) {
   }
 }
 
-// Loads private Audit Log messages (muffintoughen only)
 function loadAuditLogs() {
   const container = document.getElementById('message-container');
   if (!container) return;
@@ -421,7 +470,7 @@ function loadAuditLogs() {
     });
 }
 
-// Announcements System
+// Realtime Announcements Listener
 function openAnnouncementsModal() {
   const modal = document.getElementById('announcement-modal');
   const inputContainer = document.getElementById('announcement-input-container');
@@ -434,7 +483,7 @@ function openAnnouncementsModal() {
   }
 
   modal.style.display = 'flex';
-  fetchAnnouncements();
+  startRealtimeAnnouncements();
 }
 
 function closeAnnouncementsModal() {
@@ -456,18 +505,19 @@ async function postAnnouncement() {
       timestamp: firebase.firestore.FieldValue.serverTimestamp()
     });
     textInput.value = '';
-    fetchAnnouncements();
   } catch (e) {
     console.error("Announcement error:", e);
   }
   showLoading(false);
 }
 
-function fetchAnnouncements() {
+function startRealtimeAnnouncements() {
   const listContainer = document.getElementById('announcement-list');
   if (!listContainer) return;
 
-  db.collection('announcements').orderBy('timestamp', 'desc').get().then(snapshot => {
+  if (unsubscribeAnnouncements) unsubscribeAnnouncements();
+
+  unsubscribeAnnouncements = db.collection('announcements').orderBy('timestamp', 'desc').onSnapshot(snapshot => {
     listContainer.innerHTML = '';
     if (snapshot.empty) {
       listContainer.innerHTML = '<div style="opacity: 0.6; font-size: 14px;">No announcements yet.</div>';
@@ -486,7 +536,7 @@ function fetchAnnouncements() {
   });
 }
 
-// Base64 File Uploader with 10MB strict limit
+// Live Image Upload Preview & Progress Indicator
 function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -498,15 +548,53 @@ function handleFileUpload(event) {
     return;
   }
 
+  const container = document.getElementById('message-container');
+  const tempMsgId = 'temp-upload-' + Date.now();
+  const tempDiv = document.createElement('div');
+  tempDiv.className = 'message';
+  tempDiv.id = tempMsgId;
+
+  tempDiv.innerHTML = `
+    <div class="msg-header">
+      <span class="msg-author" style="color:${getUserColor(currentUserData.name)}">${currentUserData.name}</span>
+    </div>
+    <div style="background:#2f3136;padding:12px;border-radius:6px;display:flex;flex-direction:column;gap:8px;max-width:260px;margin-top:4px;">
+      <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#aaa;">
+        <i class="fa-solid fa-spinner fa-spin" style="color:#7289da;font-size:16px;"></i> Uploading ${file.name}...
+      </div>
+      <div style="width:100%;background:#40444b;height:6px;border-radius:3px;overflow:hidden;">
+        <div id="${tempMsgId}-bar" style="width:0%;height:100%;background:#7289da;transition:width 0.2s ease;"></div>
+      </div>
+    </div>
+  `;
+
+  if (container) {
+    container.appendChild(tempDiv);
+    container.scrollTop = container.scrollHeight;
+  }
+
   showLoading(true);
 
   const reader = new FileReader();
+  
+  reader.onprogress = function (e) {
+    if (e.lengthComputable) {
+      const percent = Math.round((e.loaded / e.total) * 100);
+      const progressBar = document.getElementById(`${tempMsgId}-bar`);
+      if (progressBar) progressBar.style.width = percent + '%';
+    }
+  };
+
   reader.onload = function (e) {
+    const tempElement = document.getElementById(tempMsgId);
+    if (tempElement) tempElement.remove();
+
     sendMessage({
       url: e.target.result,
       name: file.name,
       type: file.type || 'application/octet-stream'
     });
+
     showLoading(false);
     event.target.value = '';
   };
@@ -514,9 +602,52 @@ function handleFileUpload(event) {
   reader.onerror = function (error) {
     console.error("File reading error:", error);
     alert("Failed to read file.");
+    const tempElement = document.getElementById(tempMsgId);
+    if (tempElement) tempElement.remove();
     showLoading(false);
     event.target.value = '';
   };
 
   reader.readAsDataURL(file);
+}
+
+// Typing Indicators
+function attachTypingEvents() {
+  const input = document.getElementById('message-input');
+  if (!input) return;
+
+  input.addEventListener('input', () => {
+    updateTypingStatus(true);
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(() => updateTypingStatus(false), 2000);
+  });
+}
+
+function updateTypingStatus(isTyping) {
+  if (!currentUserData) return;
+  db.collection('rooms').doc(currentRoom).collection('typing').doc(currentUserData.name).set({
+    typing: isTyping,
+    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+
+function listenTypingStatus() {
+  const bar = document.getElementById('typing-indicator-bar');
+  if (!bar) return;
+
+  db.collection('rooms').doc(currentRoom).collection('typing').onSnapshot(snap => {
+    const typers = [];
+    snap.forEach(doc => {
+      const data = doc.data();
+      if (data.typing && doc.id !== currentUserData?.name) {
+        typers.push(doc.id);
+      }
+    });
+
+    if (typers.length > 0) {
+      bar.innerText = `${typers.join(', ')} ${typers.length === 1 ? 'is' : 'are'} typing...`;
+    } else {
+      bar.innerText = '';
+    }
+  });
 }
