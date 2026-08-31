@@ -780,6 +780,9 @@ select:focus-visible {
 @media (max-width: 760px) {
   body { overflow: hidden; }
 
+  .app-container,
+  .auth-container { min-height: 100dvh; }
+
   .mobile-only { display: inline-grid; }
 
   .sidebar {
@@ -805,8 +808,16 @@ select:focus-visible {
 
   .message-container { padding: 14px 8px; }
   .message { padding-left: 50px; padding-right: 42px; }
-  .input-area { padding: 10px; }
+  .input-area {
+    padding: 10px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom));
+  }
   .chat-header { padding: 0 10px; }
+  .modal { padding: 12px; }
+  .modal-content { max-height: calc(100dvh - 24px); padding: 16px; }
+  .lightbox { padding: 20px; }
+  .toast-container { right: 10px; bottom: max(10px, env(safe-area-inset-bottom)); }
+  .toast { min-width: 0; width: min(360px, calc(100vw - 20px)); }
   .msg-actions { opacity: 1; pointer-events: auto; transform: none; }
   .channel-manager-row { grid-template-columns: 1fr auto; }
   .channel-manager-row input { grid-column: 1 / -1; }
