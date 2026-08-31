@@ -175,9 +175,14 @@
     <div class="modal-content modal-large" role="dialog" aria-modal="true" aria-labelledby="announcement-title">
       <div class="modal-header">
         <h2 id="announcement-title"><i class="fa-solid fa-bullhorn"></i> Announcements</h2>
-        <button class="close-modal icon-btn" type="button" data-close="announcement-modal" aria-label="Close">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
+        <div class="modal-header-actions">
+          <button id="clear-announcements-btn" class="icon-btn danger" type="button" aria-label="Delete all announcements" title="Delete all announcements" hidden>
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+          <button class="close-modal icon-btn" type="button" data-close="announcement-modal" aria-label="Close">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
       </div>
 
       <div id="announcement-compose" class="announcement-compose" hidden>
