@@ -49,6 +49,7 @@ let typingTimeout = null;
 let unreadAnnouncementsCount = 0;
 let announcementInitialized = false;
 let channelRules = {};
+let uiAudioContext = null;
 
 const listeners = {
   messages: null,
@@ -109,6 +110,37 @@ function isOwner() {
   return currentUserData?.roles?.some(role =>
     String(role).toUpperCase() === "OWNER"
   );
+}
+
+function playUiSound(kind = "click") {
+  if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+  try {
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    uiAudioContext ||= new AudioContextClass();
+    const context = uiAudioContext;
+    context.resume?.().catch(() => {});
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    const now = context.currentTime;
+    const tones = {
+      click: [520, 0.025],
+      success: [700, 0.06],
+      danger: [180, 0.07]
+    };
+    const [frequency, duration] = tones[kind] || tones.click;
+
+    oscillator.type = kind === "danger" ? "triangle" : "sine";
+    oscillator.frequency.setValueAtTime(frequency, now);
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.exponentialRampToValueAtTime(0.045, now + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(now);
+    oscillator.stop(now + duration + 0.01);
+  } catch (_) {}
 }
 
 function isAdmin() {
@@ -1781,6 +1813,8 @@ function openAnnouncements() {
 
   updateAnnouncementBadge();
 
+  $("clear-announcements-btn").hidden = !isOwner();
+
   openModal(
     "announcement-modal"
   );
@@ -1831,9 +1865,7 @@ function loadAnnouncements() {
         snapshot.forEach(doc => {
 
           list.appendChild(
-            createAnnouncementCard(
-              doc.data()
-            )
+            createAnnouncementCard(doc.data(), doc.id)
           );
 
         });
@@ -1843,7 +1875,7 @@ function loadAnnouncements() {
 }
 
 
-function createAnnouncementCard(data) {
+function createAnnouncementCard(data, announcementId) {
 
   const card =
     document.createElement("article");
@@ -1906,6 +1938,17 @@ function createAnnouncementCard(data) {
     text
   );
 
+  if (isOwner()) {
+    const remove = createIconButton(
+      "fa-solid fa-trash",
+      "Delete announcement",
+      "delete"
+    );
+    remove.classList.add("announcement-delete");
+    remove.addEventListener("click", () => deleteAnnouncement(announcementId));
+    card.appendChild(remove);
+  }
+
 
   return card;
 
@@ -1958,6 +2001,7 @@ async function postAnnouncement() {
 
 
     input.value = "";
+    playUiSound("success");
 
 
   } catch (error) {
@@ -2071,6 +2115,50 @@ function openChannelManager() {
 
   renderChannelManager();
   openModal("channel-modal");
+}
+
+async function deleteAnnouncement(announcementId) {
+  if (!isOwner() || !announcementId) return;
+
+  if (!confirm("Delete this announcement?")) return;
+
+  try {
+    await db.collection("announcements").doc(announcementId).delete();
+    playUiSound("danger");
+    showToast("Announcement deleted.");
+  } catch (error) {
+    console.error(error);
+    showToast("Could not delete the announcement.", "error");
+  }
+}
+
+async function deleteAllAnnouncements() {
+  if (!isOwner()) return;
+
+  if (!confirm("Delete every announcement? This cannot be undone.")) return;
+
+  showLoading(true);
+  try {
+    let deleted = 0;
+
+    while (true) {
+      const snapshot = await db.collection("announcements").limit(400).get();
+      if (snapshot.empty) break;
+
+      const batch = db.batch();
+      snapshot.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      deleted += snapshot.size;
+    }
+
+    playUiSound("danger");
+    showToast(`Deleted ${deleted} announcement${deleted === 1 ? "" : "s"}.`);
+  } catch (error) {
+    console.error(error);
+    showToast("Could not delete all announcements.", "error");
+  } finally {
+    showLoading(false);
+  }
 }
 
 function renderChannelManager() {
@@ -2885,6 +2973,13 @@ $("message-form")
   );
 
 
+$("clear-announcements-btn")
+  .addEventListener(
+    "click",
+    deleteAllAnnouncements
+  );
+
+
 $("channel-manager-btn")
   .addEventListener(
     "click",
@@ -3066,6 +3161,13 @@ document.addEventListener(
 
   }
 );
+
+
+document.addEventListener("click", event => {
+  if (event.target.closest("button")) {
+    playUiSound("click");
+  }
+});
 
 
 attachTypingEvents();
