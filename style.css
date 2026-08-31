@@ -12,14 +12,31 @@ body {
   overflow: hidden;
 }
 
-/* Hide roles in main chat message stream (keep intact inside user profiles) */
+/* Hide roles in main chat message stream */
 .message .role-badge, 
 .message .msg-header .role-badge,
 .message span[class*="role"] {
   display: none !important;
 }
 
-/* Floating announcement ring button (Bottom Left positioning) */
+/* Hide edit/delete actions by default, show ONLY on message hover */
+.msg-actions {
+  position: absolute;
+  top: 6px; 
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.message:hover .msg-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Floating announcement ring button */
 #announcement-ring-btn {
   position: fixed !important;
   bottom: 20px !important;
@@ -231,13 +248,6 @@ body {
   max-width: 280px;
   border-radius: 6px;
   margin-top: 8px;
-}
-
-.msg-actions {
-  position: absolute;
-  top: 6px; right: 8px;
-  display: flex;
-  gap: 6px;
 }
 
 .action-btn {
