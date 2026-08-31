@@ -30,6 +30,31 @@ button, input, textarea, select { font: inherit; }
 
 button { -webkit-tap-highlight-color: transparent; }
 
+/* Colored scrollbars for the chat and modal panels. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--purple) var(--panel-2);
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--panel-2);
+}
+
+*::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--purple), var(--pink));
+  border: 2px solid var(--panel-2);
+  border-radius: 999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: var(--pink);
+}
+
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
