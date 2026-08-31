@@ -50,6 +50,7 @@ let unreadAnnouncementsCount = 0;
 let announcementInitialized = false;
 let channelRules = {};
 let uiAudioContext = null;
+let dragDepth = 0;
 
 const listeners = {
   messages: null,
@@ -466,6 +467,42 @@ function updateCurrentUserUI() {
   updatePostingPermission();
 
 }
+
+function setDropOverlay(visible) {
+  const overlay = $("drop-upload-overlay");
+  if (overlay) overlay.hidden = !visible;
+}
+
+function isFileDrag(event) {
+  return Array.from(event.dataTransfer?.types || []).includes("Files");
+}
+
+document.addEventListener("dragenter", event => {
+  if (!isFileDrag(event)) return;
+  event.preventDefault();
+  dragDepth++;
+  setDropOverlay(true);
+});
+
+document.addEventListener("dragover", event => {
+  if (!isFileDrag(event)) return;
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = "copy";
+});
+
+document.addEventListener("dragleave", event => {
+  if (!isFileDrag(event)) return;
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (!dragDepth) setDropOverlay(false);
+});
+
+document.addEventListener("drop", event => {
+  if (!event.dataTransfer?.files?.length) return;
+  event.preventDefault();
+  dragDepth = 0;
+  setDropOverlay(false);
+  uploadSelectedImage(event.dataTransfer.files[0]);
+});
 
 
 auth.onAuthStateChanged(async user => {
