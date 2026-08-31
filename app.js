@@ -28,10 +28,11 @@ auth.onAuthStateChanged(async (user) => {
       if (userDoc.exists) {
         currentUserData = userDoc.data();
       } else {
-        currentUserData = { name: user.email.split('@')[0], role: 'Member' };
+        currentUserData = { name: user.email.split('@')[0], role: 'VIP' };
+        await db.collection('users').doc(user.uid).set(currentUserData);
       }
     } catch (e) {
-      currentUserData = { name: user.email.split('@')[0], role: 'Member' };
+      currentUserData = { name: user.email.split('@')[0], role: 'VIP' };
     }
     
     if (authScreen) authScreen.style.display = 'none';
@@ -48,7 +49,7 @@ async function handleAuth() {
   const password = document.getElementById('password-input').value;
 
   if (!email || !password) {
-    alert("Please enter your email and password.");
+    alert("Please enter your credentials.");
     return;
   }
 
@@ -61,6 +62,26 @@ async function handleAuth() {
 
 function logout() {
   auth.signOut();
+}
+
+function openRoleModal() {
+  document.getElementById('role-modal').style.display = 'flex';
+}
+
+function closeRoleModal() {
+  document.getElementById('role-modal').style.display = 'none';
+}
+
+async function saveUserRole() {
+  const newRole = document.getElementById('custom-role-input').value.trim();
+  const user = auth.currentUser;
+  
+  if (!newRole || !user) return;
+
+  currentUserData.role = newRole;
+  await db.collection('users').doc(user.uid).set(currentUserData, { merge: true });
+  closeRoleModal();
+  loadRoomMessages(currentRoom);
 }
 
 function switchRoom(roomName) {
@@ -98,20 +119,16 @@ function loadRoomMessages(room) {
         const div = document.createElement('div');
         div.className = 'message';
         
-        const roleClass = 'role-' + (msg.role || 'Member').toLowerCase().replace(/\s+/g, '-');
-        
         div.innerHTML = `
           <div class="msg-header">
             <span class="msg-author">${msg.name || 'Anonymous'}</span>
-            <span class="role-badge ${roleClass}">${msg.role || 'Member'}</span>
+            <span class="role-badge">${msg.role || 'Member'}</span>
           </div>
           <div class="msg-text">${formatText(msg.text || '')}</div>
         `;
         container.appendChild(div);
       });
       container.scrollTop = container.scrollHeight;
-    }, error => {
-      console.error("Firestore Read Error: ", error);
     });
 }
 
@@ -126,8 +143,6 @@ function sendMessage() {
     role: currentUserData.role,
     text: text,
     timestamp: firebase.firestore.FieldValue.serverTimestamp()
-  }).catch(error => {
-    console.error("Firestore Write Error: ", error);
   });
 
   input.value = '';
