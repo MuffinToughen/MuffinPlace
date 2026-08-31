@@ -20,13 +20,13 @@ let unsubscribeListener = null;
 let unsubscribeAnnouncements = null;
 let typingTimeout = null;
 
-// Global Animated Progress Bar Function
+// Dynamic Progress Bar Handler
 function showLoading(show = true) {
   let topBar = document.getElementById('top-progress-bar');
   if (!topBar) {
     topBar = document.createElement('div');
     topBar.id = 'top-progress-bar';
-    topBar.style.cssText = 'position:fixed;top:0;left:0;height:4px;width:0%;background:linear-gradient(90deg, #7289da, #f47fff);z-index:99999;transition:width 0.3s ease;';
+    topBar.style.cssText = 'position:fixed;top:0;left:0;height:4px;width:0%;background:linear-gradient(90deg, #a855f7, #ec4899);z-index:99999;transition:width 0.3s ease;';
     document.body.appendChild(topBar);
   }
 
@@ -42,6 +42,7 @@ function showLoading(show = true) {
   }
 }
 
+// Generate unique username color palette
 function getUserColor(name) {
   if (!name) return '#ffffff';
   let hash = 0;
@@ -49,10 +50,10 @@ function getUserColor(name) {
     hash = name.charCodeAt(i) + ((hash << 5) - hash);
   }
   const hue = Math.abs(hash) % 360;
-  return `hsl(${hue}, 75%, 65%)`;
+  return `hsl(${hue}, 80%, 70%)`;
 }
 
-// Lightbox modal for image previews
+// Fullscreen Image Lightbox
 function setupImageLightboxUI() {
   if (document.getElementById('image-lightbox-modal')) return;
   const modal = document.createElement('div');
@@ -72,14 +73,13 @@ function openLightbox(src) {
   }
 }
 
-// Announcement floating ring button (bottom-left)
+// Announcement Floating Ring Setup
 function setupAnnouncementUI() {
   if (document.getElementById('announcement-ring-btn')) return;
 
   const btn = document.createElement('button');
   btn.id = 'announcement-ring-btn';
   btn.innerHTML = '<i class="fa-solid fa-bell"></i>';
-  btn.style.cssText = 'position:fixed;bottom:20px;left:20px;width:50px;height:50px;border-radius:50%;background:#7289da;color:#fff;border:none;cursor:pointer;font-size:20px;box-shadow:0 4px 10px rgba(0,0,0,0.3);z-index:9999;display:flex;align-items:center;justify-content:center;';
   btn.onclick = openAnnouncementsModal;
   document.body.appendChild(btn);
 
@@ -87,14 +87,14 @@ function setupAnnouncementUI() {
   modal.id = 'announcement-modal';
   modal.style.cssText = 'display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);z-index:10000;align-items:center;justify-content:center;';
   modal.innerHTML = `
-    <div style="background:#2f3136;color:#fff;padding:20px;border-radius:8px;width:90%;max-width:500px;max-height:80vh;display:flex;flex-direction:column;gap:10px;">
+    <div style="background:#181820;color:#fff;padding:20px;border-radius:8px;width:90%;max-width:500px;max-height:80vh;display:flex;flex-direction:column;gap:10px;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
-        <h3 style="margin:0;"><i class="fa-solid fa-bullhorn"></i> Announcements</h3>
+        <h3 style="margin:0;color:#a855f7;"><i class="fa-solid fa-bullhorn"></i> Announcements</h3>
         <button onclick="closeAnnouncementsModal()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:18px;">✕</button>
       </div>
       <div id="announcement-input-container" style="display:none;flex-direction:column;gap:8px;">
-        <textarea id="announcement-text" placeholder="Write announcement..." style="width:100%;height:60px;background:#40444b;border:none;color:#fff;padding:8px;border-radius:4px;resize:none;"></textarea>
-        <button onclick="postAnnouncement()" style="background:#7289da;color:#fff;border:none;padding:8px;border-radius:4px;cursor:pointer;font-weight:bold;">Post Announcement</button>
+        <textarea id="announcement-text" placeholder="Write announcement..." style="width:100%;height:60px;background:#232330;border:1px solid #323245;color:#fff;padding:8px;border-radius:6px;resize:none;"></textarea>
+        <button onclick="postAnnouncement()" style="background:linear-gradient(135deg, #a855f7, #ec4899);color:#fff;border:none;padding:8px;border-radius:6px;cursor:pointer;font-weight:bold;">Post Announcement</button>
       </div>
       <div id="announcement-list" style="overflow-y:auto;max-height:50vh;display:flex;flex-direction:column;gap:10px;margin-top:10px;"></div>
     </div>
@@ -107,7 +107,7 @@ function setupTypingUI() {
   if (container && !document.getElementById('typing-indicator-bar')) {
     const typingBar = document.createElement('div');
     typingBar.id = 'typing-indicator-bar';
-    typingBar.style.cssText = 'font-size:12px;opacity:0.7;padding:4px 12px;font-style:italic;color:#7289da;min-height:18px;';
+    typingBar.style.cssText = 'font-size:12px;opacity:0.75;padding:4px 16px;font-style:italic;color:#a855f7;min-height:18px;';
     container.parentNode.insertBefore(typingBar, container.nextSibling);
   }
 }
@@ -118,7 +118,7 @@ function setupAuditLogRoomUI() {
 
   if (isOwner) {
     if (!navBtn) {
-      const sidebar = document.querySelector('.sidebar') || document.querySelector('nav');
+      const sidebar = document.querySelector('.sidebar');
       if (sidebar) {
         navBtn = document.createElement('button');
         navBtn.id = 'audit-log-nav-btn';
@@ -133,7 +133,7 @@ function setupAuditLogRoomUI() {
   }
 }
 
-// Authentication Observer
+// Authentication Listener
 auth.onAuthStateChanged(async (user) => {
   showLoading(true);
   setupAnnouncementUI();
@@ -318,7 +318,7 @@ function switchRoom(roomName) {
 
 function formatText(text) {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
-  return text.replace(urlRegex, url => `<a href="${url}" target="_blank" class="msg-link">${url}</a>`);
+  return text.replace(urlRegex, url => `<a href="${url}" target="_blank" style="color:#a855f7;text-decoration:underline;">${url}</a>`);
 }
 
 function loadRoomMessages(room) {
@@ -359,12 +359,13 @@ function loadRoomMessages(room) {
         }
 
         const authorName = msg.name || 'Anonymous';
-        const userColor = getUserColor(authorName);
+        const nameColor = getUserColor(authorName);
 
+        // Render header with inline color styling & without main-chat role badges
         div.innerHTML = `
           ${actionsHtml}
           <div class="msg-header">
-            <span class="msg-author" style="color: ${userColor}; font-weight: bold; cursor: pointer;" onclick="openUserProfile('${authorName}')">${authorName}</span>
+            <span class="msg-author" style="color: ${nameColor} !important;" onclick="openUserProfile('${authorName}')">${authorName}</span>
           </div>
           <div class="msg-text">${formatText(msg.text || '')}${msg.edited ? '<span class="msg-edited">(edited)</span>' : ''}</div>
           ${mediaHtml}
@@ -450,14 +451,14 @@ function loadAuditLogs() {
         const log = doc.data();
         const div = document.createElement('div');
         div.className = 'message';
-        div.style.borderLeft = log.action === 'DELETE' ? '4px solid #f04747' : '4px solid #faa61a';
+        div.style.borderLeft = log.action === 'DELETE' ? '4px solid #ef4444' : '4px solid #f59e0b';
         div.style.paddingLeft = '10px';
 
         const timeStr = log.timestamp ? new Date(log.timestamp.toDate()).toLocaleString() : 'Just now';
 
         div.innerHTML = `
           <div class="msg-header">
-            <span class="msg-author" style="color: ${log.action === 'DELETE' ? '#f04747' : '#faa61a'}">[${log.action}] by ${log.author}</span>
+            <span class="msg-author" style="color: ${log.action === 'DELETE' ? '#ef4444' : '#f59e0b'}">[${log.action}] by ${log.author}</span>
             <span style="font-size: 11px; opacity: 0.6; margin-left: 8px;">(${log.room} • ${timeStr})</span>
           </div>
           <div class="msg-text">
@@ -526,9 +527,9 @@ function startRealtimeAnnouncements() {
     snapshot.forEach(doc => {
       const data = doc.data();
       const div = document.createElement('div');
-      div.style.cssText = 'background:#36393f;padding:10px;border-radius:6px;border-left:4px solid #7289da;';
+      div.style.cssText = 'background:#232330;padding:10px;border-radius:6px;border-left:4px solid #a855f7;';
       div.innerHTML = `
-        <div style="font-weight:bold;font-size:12px;color:#7289da;margin-bottom:4px;">${data.author || 'Admin'}</div>
+        <div style="font-weight:bold;font-size:12px;color:#a855f7;margin-bottom:4px;">${data.author || 'Admin'}</div>
         <div style="font-size:14px;white-space:pre-wrap;">${formatText(data.text || '')}</div>
       `;
       listContainer.appendChild(div);
@@ -536,12 +537,12 @@ function startRealtimeAnnouncements() {
   });
 }
 
-// Live Image Upload Preview & Progress Indicator
+// File & Image Upload Progress Indicator
 function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
 
-  const maxSizeBytes = 10 * 1024 * 1024; // 10 MB limit
+  const maxSizeBytes = 10 * 1024 * 1024; // 10 MB strict limit
   if (file.size > maxSizeBytes) { 
     alert("File is too large! Maximum allowed size is 10 MB.");
     event.target.value = '';
@@ -558,12 +559,12 @@ function handleFileUpload(event) {
     <div class="msg-header">
       <span class="msg-author" style="color:${getUserColor(currentUserData.name)}">${currentUserData.name}</span>
     </div>
-    <div style="background:#2f3136;padding:12px;border-radius:6px;display:flex;flex-direction:column;gap:8px;max-width:260px;margin-top:4px;">
+    <div style="background:#232330;padding:12px;border-radius:6px;display:flex;flex-direction:column;gap:8px;max-width:260px;margin-top:4px;">
       <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:#aaa;">
-        <i class="fa-solid fa-spinner fa-spin" style="color:#7289da;font-size:16px;"></i> Uploading ${file.name}...
+        <i class="fa-solid fa-spinner fa-spin" style="color:#a855f7;font-size:16px;"></i> Uploading ${file.name}...
       </div>
-      <div style="width:100%;background:#40444b;height:6px;border-radius:3px;overflow:hidden;">
-        <div id="${tempMsgId}-bar" style="width:0%;height:100%;background:#7289da;transition:width 0.2s ease;"></div>
+      <div style="width:100%;background:#323245;height:6px;border-radius:3px;overflow:hidden;">
+        <div id="${tempMsgId}-bar" style="width:0%;height:100%;background:linear-gradient(90deg, #a855f7, #ec4899);transition:width 0.2s ease;"></div>
       </div>
     </div>
   `;
@@ -611,7 +612,7 @@ function handleFileUpload(event) {
   reader.readAsDataURL(file);
 }
 
-// Typing Indicators
+// Live Typing Indicator Listeners
 function attachTypingEvents() {
   const input = document.getElementById('message-input');
   if (!input) return;
