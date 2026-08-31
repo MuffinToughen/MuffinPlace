@@ -676,13 +676,20 @@ function createMessageElement(messageId, msg) {
   message.addEventListener("click", event => {
     if (
       !window.matchMedia("(max-width: 760px)").matches ||
-      !message.querySelector(".msg-actions") ||
       event.target.closest("button, a")
     ) {
       return;
     }
 
-    message.classList.toggle("actions-open");
+    const wasOpen = message.classList.contains("actions-open");
+
+    document.querySelectorAll(".message.actions-open").forEach(item => {
+      item.classList.remove("actions-open");
+    });
+
+    if (!wasOpen && message.querySelector(".msg-actions")) {
+      message.classList.add("actions-open");
+    }
   });
 
   const authorName =
