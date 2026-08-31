@@ -128,6 +128,7 @@ function playUiSound(kind = "click") {
     const tones = {
       click: [520, 0.025],
       send: [880, 0.075],
+      announcement: [1040, 0.12],
       success: [700, 0.06],
       danger: [180, 0.07]
     };
@@ -141,6 +142,29 @@ function playUiSound(kind = "click") {
     oscillator.connect(gain).connect(context.destination);
     oscillator.start(now);
     oscillator.stop(now + duration + 0.01);
+  } catch (_) {}
+}
+
+async function requestNotificationPermission() {
+  if (!("Notification" in window) || Notification.permission !== "default") {
+    return;
+  }
+
+  try {
+    await Notification.requestPermission();
+  } catch (_) {}
+}
+
+function showAnnouncementNotification(data) {
+  if (!("Notification" in window) || Notification.permission !== "granted") {
+    return;
+  }
+
+  try {
+    new Notification("Muffins Place", {
+      body: `New announcement from ${data.author || "Admin"}`,
+      tag: "muffins-place-announcement"
+    });
   } catch (_) {}
 }
 
@@ -648,6 +672,18 @@ function createMessageElement(messageId, msg) {
     document.createElement("article");
 
   message.className = "message message-enter";
+
+  message.addEventListener("click", event => {
+    if (
+      !window.matchMedia("(max-width: 760px)").matches ||
+      !message.querySelector(".msg-actions") ||
+      event.target.closest("button, a")
+    ) {
+      return;
+    }
+
+    message.classList.toggle("actions-open");
+  });
 
   const authorName =
     safeText(msg.name) || "Anonymous";
@@ -1782,6 +1818,9 @@ function startAnnouncementBackgroundListener() {
                 "success"
               );
 
+              playUiSound("announcement");
+              showAnnouncementNotification(change.doc.data());
+
             }
 
           }
@@ -1811,6 +1850,8 @@ function updateAnnouncementBadge() {
 
 
 function openAnnouncements() {
+
+  requestNotificationPermission();
 
   unreadAnnouncementsCount = 0;
 
